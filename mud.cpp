@@ -6,7 +6,7 @@ int main()
     sf::RenderWindow window(sf::VideoMode(1250, 750), "SFML works!");
     window.setFramerateLimit(60);
 
-    sf::View cam{ sf::FloatRect(0,0,1250,750) };
+    sf::View cam{ sf::FloatRect(0, 0, 1250, 750) };
     sf::View HUD{ sf::FloatRect(0, 0, 1250, 750) };//-------------------------------------------------------------------------------------------------------------------
 
     std::unordered_set<sf::RectangleShape*> lstR;
@@ -14,22 +14,44 @@ int main()
     std::unordered_set<Attaque*> lstAtt;
     std::unordered_set<Plateforme*> lstPF;
     std::unordered_set<Ennemie*> lstEnn;
-    EntityLists drawable{&lstR, &lstPF, &lstEnn, &lstProj, &lstAtt };
-    Plateforme plateforme1(0, 800);
-    Plateforme plateforme2(300, 600);
-    Plateforme plateforme3(300, 600, "mur");
-    Plateforme plateforme4(0, 1100);
-
-
-    drawable.ptrPF->insert(&plateforme1);
-    drawable.ptrPF->insert(&plateforme2);
-    drawable.ptrPF->insert(&plateforme3);
-    drawable.ptrPF->insert( &plateforme4);
+    EntityLists drawable{ &lstR, &lstPF, &lstEnn, &lstProj, &lstAtt };
+    bool level[20][20]{
+        { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
+        { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 }
+    };
+    for (int y{ 0 }; y < sizeof(level); y++)
+    {
+        for (int x{ 0 }; x < sizeof(level[y]); x++)
+        {
+            if (level[y][x])
+            {
+                drawable.ptrPF->insert(new Plateforme (x*100, y*100));
+            }
+        }
+    }
 
     int persoIndex = 0;
     std::array<PJ, 3> persos{PJ(& drawable, 1), PJ(&drawable, 2), PJ(&drawable, 3)};
     drawable.perso = &persos[persoIndex];
-    Ennemie mechant(&drawable, 300, 485);
+    //Ennemie mechant(&drawable, 300, 485);
 
     while (window.isOpen())
     {
@@ -48,7 +70,6 @@ int main()
                 }
                 if (event.key.code == sf::Keyboard::Tab)
                 {
-                    std::cout << "f";
                     jointVar vars = drawable.perso->resetVar();
                     ++persoIndex;
                     if (persoIndex == 3) { persoIndex = 0; }
@@ -57,10 +78,9 @@ int main()
                 }
             }
         }
-
+        //Actualisation et dessin des Entités
         drawable.perso->update();
         window.clear();
-
         window.setView(HUD);
         for (sf::RectangleShape* r : *drawable.hud)
         {

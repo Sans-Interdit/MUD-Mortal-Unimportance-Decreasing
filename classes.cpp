@@ -86,7 +86,6 @@ void SolUnit::physique()
     m_hitbox.height -= 5;
     sf::FloatRect zonePied(m_hitbox.left, m_hitbox.top + m_hitbox.height, m_hitbox.width, 5);
     m_auSol = false;
-
     for (Entite* plateforme : *m_ptrGroup->ptrPF)
     {
         sf::FloatRect hitboxPF{ plateforme->getHitbox() };
@@ -96,7 +95,6 @@ void SolUnit::physique()
             setPosition(getPosition().x, plateforme->getPosition().y - m_hitbox.height);
             m_auSol = true;
             m_tmpSaut = 0;
-            m_vecteurY = -3;
             m_avPos.y = getPosition().y;
         }
         else if (m_hitbox.intersects(hitboxPF))
@@ -115,6 +113,7 @@ void SolUnit::physique()
         }
     }
     m_avPos = getPosition();
+    std::cout << m_avPos.y << std::endl;
 }
 
 Ennemie::Ennemie(EntityLists* drawable, int x, int y)
@@ -283,6 +282,7 @@ PJ::PJ(EntityLists* drawable, int p)
         m_stat = { 5000, 5, 5, {0.2,0.2,0.7} };
         m_attaque = { Attaque(this, AllAttTypes::cac, "Sprites/attaque1.png", 0.25, 1.2, 5), Attaque(this, AllAttTypes::cac, "Sprites/attaque1.png", 0.25, 1.2, 5), Attaque(this, AllAttTypes::cac, "Sprites/attaque1.png", 0.25, 1.2, 5) };
     }
+    setPosition(sf::Vector2f(100, 100));
     m_hp = m_stat.maxHP;
     m_ptrGroup = drawable;
     m_dmgRect.setFillColor(sf::Color::Transparent);
@@ -399,6 +399,7 @@ void PJ::spe()
 
 void PJ::update()
 {
+    setTextureRect(sf::IntRect(m_imgCoord.x * 40, int(!m_aDroite) * 120, 40, 120));
     if (!m_auSol && !m_sbMaintenue && -35 * (m_tmpSaut * m_tmpSaut) / 2 + m_vecteurY > 0 && m_doubleSaut)
     {
         m_vecteurY -= 1;
@@ -437,7 +438,6 @@ void PJ::update()
     bool const dashing{ m_speTmp < 0.15 };
     if (!slashing && m_speTmp > 0.25)
     {
-        std::cout << m_doubleSaut << std::endl;
         saut();
         if (m_hitTime <= 0)
         {
@@ -450,7 +450,6 @@ void PJ::update()
             m_hitTime -= 0.016;
         }
     }
-    setTextureRect(sf::IntRect(m_imgCoord.x * 40, int(!m_aDroite) * 120, 40, 120));
 }
 
 jointVar PJ::resetVar()
@@ -465,13 +464,13 @@ jointVar PJ::resetVar()
 void PJ::recoverVar(jointVar vars)
 {
     setPosition(vars.pos);
+    m_avPos = getPosition();
     m_vecteurX = vars.vecX;
     m_vecteurY = vars.vecY;
     m_tmpSaut = vars.tmpSaut;
     m_aDroite = vars.aDroite;
-    m_avPos = getPosition();
     m_doubleSaut = false;
-    std::cout << m_doubleSaut << std::endl;
+    m_auSol = false;
 }
 
 std::string PJ::getType() { return "PJ"; }
