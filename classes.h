@@ -26,7 +26,7 @@ protected:
 class Plateforme : public Entite
 {
 public:
-    Plateforme(int const x, int const y, std::string type = "sol");
+    Plateforme(float const x, float const y, std::string type = "sol");
 };
 
 class Unit : public Entite
@@ -91,7 +91,7 @@ private:
 class Ennemie : public SolUnit
 {
 public:
-    Ennemie(EntityLists* drawable, int x, int y);
+    Ennemie(EntityLists* drawable, float x, float y);
     void update();
     void attack();
     void run();
@@ -111,7 +111,7 @@ class PJ : public SolUnit
 public:
     PJ(EntityLists* drawable, int p);
     void update();
-    void attaquer();
+    void attack();
     void run();
     void saut();
     void spe();
