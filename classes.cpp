@@ -60,7 +60,10 @@ void Unit::setNumAtt(int val) { m_numAtt = val; }
 
 void SolUnit::physique()
 {
-    move(static_cast<float>(m_vecteurX), 0);
+    double posY{ -35 * (m_tmpSaut * m_tmpSaut) / 2 + m_vecteurY };
+    move(static_cast<float>(m_vecteurX), static_cast<float>(-posY));
+    m_tmpSaut += 0.016;
+
     if (m_vecteurX > 0)
     {
         m_vecteurX -= 0.5;
@@ -69,65 +72,42 @@ void SolUnit::physique()
     {
         m_vecteurX += 0.5;
     }
-    /*
-    else
-    {
-        m_vecteurX = 0;
-    }
-    */
-    if (!m_auSol)
-    {
-        double posY{ -35 * (m_tmpSaut * m_tmpSaut) / 2 + m_vecteurY };
-        move(0, static_cast<float>(-posY));
-        m_tmpSaut += 0.016;
-    }
-
 
     setHitbox();
-
     sf::FloatRect zonePied(m_hitbox.left, m_hitbox.top + m_hitbox.height - 5, m_hitbox.width, 5);
-    m_auSol = false;
-
+    sf::Vector2f diffPos { m_avPos - getPosition() };
     for (Entite* plateforme : *m_ptrGroup->ptrPF)
     {
         sf::FloatRect const hitboxPF{ plateforme->getHitbox() };
-        sf::Vector2f diffPos { m_avPos - getPosition() };
         bool axePF{ m_avPos.x + m_hitbox.width > plateforme->getPosition().x && m_avPos.x < plateforme->getPosition().x + hitboxPF.width };
-        if (hitboxPF.intersects(zonePied) && axePF)
+        if (hitboxPF.intersects(zonePied) && (axePF || abs(plateforme->getPosition().y-(getPosition().y+m_hitbox.height))<=10))
         {
-
-            //setPosition(getPosition().x, plateforme->getPosition().y - m_hitbox.height);
-            while (hitboxPF.top < getPosition().y + m_hitbox.height /* + diffPos.y / 5*/ - 5)
+            while (hitboxPF.top < getPosition().y + m_hitbox.height - 5)
             {
-                move(0, diffPos.y / 5);
+                std::cout << diffPos.y << std::endl;
+                move(0, -abs(diffPos.y / 5));
             }
             m_auSol = true;
             m_tmpSaut = 0;
-            //m_avPos.y = getPosition().y;
             m_vecteurY = -3;
         }
         else if (m_hitbox.intersects(hitboxPF))
         {
-            if (!m_auSol && !axePF)
+            if (!axePF)
             {
-                if (hitboxPF.intersects(sf::FloatRect(m_avPos.x, m_hitbox.top, m_hitbox.width, m_hitbox.height)))
-                {
-                    std::cout << 'd';
-                }
-                //while (m_hitbox.intersects(hitboxPF))
-                //{
-                    setPosition(m_avPos.x  /* + diff.x * 0.2*/, getPosition().y);
-                //}
+                setPosition(m_avPos.x, getPosition().y);
             }
-            else
+            else 
             {
-                setPosition(m_avPos.x/* + diff.x * 0.2*/, getPosition().y);
-                m_vecteurY = 0;
-                m_vecteurX = 0;
-                //break;
+                setPosition(getPosition().x, m_avPos.y);
             }
         }
     }
+    if (m_tmpSaut > 0)
+    {
+        m_auSol = false;
+    }
+
     m_avPos = getPosition();
 }
 
