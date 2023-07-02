@@ -80,26 +80,26 @@ void SolUnit::physique()
     {
         sf::FloatRect const hitboxPF{ plateforme->getHitbox() };
         bool axePF{ m_avPos.x + m_hitbox.width > plateforme->getPosition().x && m_avPos.x < plateforme->getPosition().x + hitboxPF.width };
-        if (hitboxPF.intersects(zonePied) && (axePF || abs(plateforme->getPosition().y-(getPosition().y+m_hitbox.height))<=10))
+        if (hitboxPF.intersects(zonePied) && (axePF || (abs(plateforme->getPosition().y - (getPosition().y + m_hitbox.height)) <= 10)&&m_auSol))
         {
             while (hitboxPF.top < getPosition().y + m_hitbox.height - 5)
             {
-                std::cout << diffPos.y << std::endl;
                 move(0, -abs(diffPos.y / 5));
             }
             m_auSol = true;
             m_tmpSaut = 0;
             m_vecteurY = -3;
         }
-        else if (m_hitbox.intersects(hitboxPF))
+        else if (m_hitbox.intersects(hitboxPF))//s'accroche au mur quand change de bloc
         {
             if (!axePF)
             {
                 setPosition(m_avPos.x, getPosition().y);
             }
-            else 
+            else
             {
                 setPosition(getPosition().x, m_avPos.y);
+                m_vecteurY = 0;
             }
         }
     }
@@ -313,6 +313,7 @@ void PJ::saut()
                 m_tmpSaut = 0;
                 m_vecteurY = 4;
                 m_doubleSaut = false;
+                m_sbMaintenue = true;
             }
         }
     }
@@ -360,21 +361,25 @@ void PJ::update()
     }
     */
     bool const slashing{ m_attaque[m_numAtt].getDelay() > 0 };
-    bool const dashing{ m_speTmp < 0.15 };
-    if (!slashing && m_speTmp > 0.25)
+    if (!slashing)
     {
         saut();
         if (m_hitTime <= 0)
         {
             run();
-            attack();
+            attack();//move
             m_ptrGroup->hud->erase(&m_dmgRect);
         }
         else
         {
             m_ptrGroup->hud->insert(&m_dmgRect);
+            m_ptrGroup->ptrAtt->erase(&m_attaque[m_numAtt]);
             m_hitTime -= 0.016;
         }
+    }
+    if (m_hitTime <= 0)
+    {
+        attack();
     }
     physique();
 }
