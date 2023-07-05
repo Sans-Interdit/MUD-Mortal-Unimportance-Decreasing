@@ -57,7 +57,7 @@ int main()
     int persoIndex = 0;
     std::array<PJ, 3> persos{PJ(& drawable, 1), PJ(&drawable, 2), PJ(&drawable, 3)};
     drawable.perso = &persos[persoIndex];
-    //Ennemie mechant(&drawable, 800, 600);
+    Ennemie mechant(&drawable, 800, 600);
 
     while (window.isOpen())
     {
@@ -84,14 +84,10 @@ int main()
                 }
             }
         }
+
         //Actualisation et dessin des Entités
         drawable.perso->update();
         window.clear();
-        window.setView(HUD);
-        for (sf::RectangleShape* r : *drawable.hud)
-        {
-            window.draw(*r);
-        }
         window.setView(cam);
         cam.setCenter(drawable.perso->getPosition());
 
@@ -117,6 +113,11 @@ int main()
         for (Plateforme* PF : *drawable.ptrPF)
         {
             window.draw(*PF);
+        }
+        window.setView(HUD);
+        for (sf::RectangleShape* r : *drawable.hud)
+        {
+            window.draw(*r);
         }
         window.display();
     }

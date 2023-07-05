@@ -60,6 +60,8 @@ void Unit::setNumAtt(int val) { m_numAtt = val; }
 
 void SolUnit::physique()
 {
+    m_avPos = getPosition();
+
     double posY{ -35 * (m_tmpSaut * m_tmpSaut) / 2 + m_vecteurY };
     move(static_cast<float>(m_vecteurX), static_cast<float>(-posY));
     m_tmpSaut += 0.016;
@@ -74,6 +76,7 @@ void SolUnit::physique()
     }
 
     setHitbox();
+
     sf::FloatRect zonePied(m_hitbox.left, m_hitbox.top + m_hitbox.height - 5, m_hitbox.width, 5);
     sf::Vector2f diffPos { m_avPos - getPosition() };
     for (Entite* plateforme : *m_ptrGroup->ptrPF)
@@ -90,7 +93,7 @@ void SolUnit::physique()
             m_tmpSaut = 0;
             m_vecteurY = -3;
         }
-        else if (m_hitbox.intersects(hitboxPF))//s'accroche au mur quand change de bloc
+        else if (m_hitbox.intersects(hitboxPF))
         {
             if (!axePF)
             {
@@ -107,8 +110,6 @@ void SolUnit::physique()
     {
         m_auSol = false;
     }
-
-    m_avPos = getPosition();
 }
 
 Ennemie::Ennemie(EntityLists* drawable, float x, float y)
@@ -154,22 +155,14 @@ void Ennemie::attack()
 
 void Ennemie::run()
 {
-    if (getPosition().x <= 300)
-    {
-        m_aDroite = true;
-    }
-    else if (getPosition().x >= 600)
-    {
-        m_aDroite = false;
-    }
     if (m_aDroite)
     {
-        move(2, 0);
+        m_vecteurX = 2;
         m_tmp += 0.016;
     }
     else
     {
-        move(-2, 0);
+        m_vecteurX = -2;
         m_tmp -= 0.016;
     }
 }
@@ -182,23 +175,30 @@ void Ennemie::update()
         m_ptrGroup->ptrEnn->erase(this);
     }
     attack();
-    if (m_attaque[m_numAtt].getDelay() <= 0)
+    bool const slashing{ m_attaque[m_numAtt].getDelay() > 0 };
+    if (!slashing)
     {
-        if (m_hitTime <= 0)//bump gauche ou droite en fonction signe
+        if (m_hitTime <= 0)
         {
             run();
         }
         else
         {
+            m_ptrGroup->ptrAtt->erase(&m_attaque[m_numAtt]);
             m_hitTime -= 0.016;
         }
     }
     physique();
+    if ((!m_auSol || (m_avPos.x == getPosition().x && !slashing)) && m_hitTime <= 0)
+    {
+        setPosition(m_avPos);
+        m_aDroite = !m_aDroite;
+    }
 }
 
 std::string Ennemie::getType() { return "Ennemie"; }
 
-//------------------------------------------------------------PJ------------------------------------------------------------------
+//------------------------------------------------------------PJ------------------------------------------------------------
 
 PJ::PJ(EntityLists* drawable, int p)
 {
@@ -230,7 +230,7 @@ PJ::PJ(EntityLists* drawable, int p)
     m_dmgRect.setFillColor(sf::Color::Transparent);
     m_dmgRect.setOutlineColor(sf::Color::Red);
     m_dmgRect.setOutlineThickness(15);
-    m_dmgRect.setPosition(getPosition().x + 15, getPosition().y + 15);
+    m_dmgRect.setPosition(15, 15);
 }
 
 
@@ -254,7 +254,6 @@ void PJ::attack()
     {
         m_attChain = true;
     }
-    //if (m_attaque[m_numAtt].getDelay() < 0) { m_attAnimTmp = 0; }
     if (m_attAnimTmp <= 0)
     {
         if (m_attaque[m_numAtt].getDelay() == m_attaque[m_numAtt].getDelayStatic())
@@ -300,7 +299,6 @@ void PJ::saut()
 {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
     {
-        //if (!m_sbMaintenue)
         {
             if (m_auSol&& !m_sbMaintenue)
             {
@@ -343,6 +341,27 @@ void PJ::spe()
     m_speTmp += 0.016;
 }
 
+jointVar PJ::resetVar()
+{
+    m_numAtt = 0;
+    m_attAnimTmp = 0;
+    m_attChain = 0;
+    m_attaque[m_numAtt].reset();
+    return { getPosition(),m_vecteurX,m_vecteurY,m_tmpSaut,m_aDroite };
+}
+
+void PJ::recoverVar(jointVar vars)
+{
+    setPosition(vars.pos);
+    m_avPos = getPosition();
+    m_vecteurX = vars.vecX;
+    m_vecteurY = vars.vecY;
+    m_tmpSaut = vars.tmpSaut;
+    m_aDroite = vars.aDroite;
+    m_doubleSaut = false;
+    m_auSol = false;
+}
+
 void PJ::update()
 {
     setTextureRect(sf::IntRect(m_imgCoord.x * 40, int(!m_aDroite) * 120, 40, 120));
@@ -367,7 +386,7 @@ void PJ::update()
         if (m_hitTime <= 0)
         {
             run();
-            attack();//move
+            attack();
             m_ptrGroup->hud->erase(&m_dmgRect);
         }
         else
@@ -382,27 +401,6 @@ void PJ::update()
         attack();
     }
     physique();
-}
-
-jointVar PJ::resetVar()
-{
-    m_numAtt = 0 ;
-    m_attAnimTmp = 0;
-    m_attChain = 0;
-    m_attaque[m_numAtt].reset();
-    return { getPosition(),m_vecteurX,m_vecteurY,m_tmpSaut,m_aDroite };
-}
-
-void PJ::recoverVar(jointVar vars)
-{
-    setPosition(vars.pos);
-    m_avPos = getPosition();
-    m_vecteurX = vars.vecX;
-    m_vecteurY = vars.vecY;
-    m_tmpSaut = vars.tmpSaut;
-    m_aDroite = vars.aDroite;
-    m_doubleSaut = false;
-    m_auSol = false;
 }
 
 std::string PJ::getType() { return "PJ"; }
@@ -547,21 +545,6 @@ void Attaque::update()
     }
     setTextureRect(sf::IntRect(0, int(!m_ptrPerso->getADroite() * m_img.getSize().y / 2), m_img.getSize().x, int(m_img.getSize().y / 2)));
 }
-
-/*
-void Attaque::next()
-{
-    if (m_numAtt < m_ptrPerso->getStat().nbAtt)
-    {
-        m_numAtt += 1;
-    }
-    else
-    {
-        m_numAtt = 1;
-    }
-    m_lstHit.clear();
-}
-*/
 
 double Attaque::getDelay() { return m_delay; }
 
