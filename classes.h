@@ -43,7 +43,7 @@ public:
 protected:
     int m_hp{ 0 };
     std::vector<Attaque> m_attaque;
-    double m_hitTime{ 0 };
+    int m_hitFrames{ 0 };
     sf::Vector2f m_avPos = getPosition();
     bool m_aDroite{ true };
     double m_attAnimTmp{ 0 };

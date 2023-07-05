@@ -40,7 +40,7 @@ void Unit::hit(int const dmg, double push)
 {
     m_hp -= dmg;
     m_vecteurX = push;
-    m_hitTime = 0.3;
+    m_hitFrames = abs(push)*2;
     m_ptrGroup->ptrAtt->erase(&m_attaque[m_numAtt]);
     m_attaque[m_numAtt].setDelay(-m_attaque[m_numAtt].getDelayStatic());
     m_attAnimTmp = m_attaque[m_numAtt].getAvTmp();
@@ -125,7 +125,7 @@ Ennemie::Ennemie(EntityLists* drawable, float x, float y)
 
 void Ennemie::attack()
 {
-    sf::FloatRect zoneAtt = m_aDroite ? sf::FloatRect{getPosition().x, getPosition().y - m_hitbox.height / 4, static_cast<float>(m_hitbox.width * 3), static_cast<float>(m_hitbox.height * 1.5)} : sf::FloatRect{ getPosition().x - m_hitbox.width * 3, getPosition().y - m_hitbox.height / 4,static_cast<float>(m_hitbox.width * 3), static_cast<float>(m_hitbox.height * 1.5) };
+    sf::FloatRect zoneAtt = m_aDroite ? sf::FloatRect{getPosition().x, getPosition().y + m_hitbox.height - m_attaque[m_numAtt].getHitbox().height, m_attaque[m_numAtt].getHitbox().width, m_attaque[m_numAtt].getHitbox().height} : sf::FloatRect{getPosition().x - m_attaque[m_numAtt].getHitbox().width + m_hitbox.width, getPosition().y + m_hitbox.height - m_attaque[m_numAtt].getHitbox().height,m_attaque[m_numAtt].getHitbox().width, m_attaque[m_numAtt].getHitbox().height };
     if (zoneAtt.intersects(m_ptrGroup->perso->getHitbox()))
     {
         if (m_attaque[m_numAtt].getDelay() < -m_stat.AS[m_numAtt])
@@ -178,18 +178,18 @@ void Ennemie::update()
     bool const slashing{ m_attaque[m_numAtt].getDelay() > 0 };
     if (!slashing)
     {
-        if (m_hitTime <= 0)
+        if (m_hitFrames <= 0)
         {
             run();
         }
         else
         {
             m_ptrGroup->ptrAtt->erase(&m_attaque[m_numAtt]);
-            m_hitTime -= 0.016;
+            m_hitFrames -= 1;
         }
     }
     physique();
-    if ((!m_auSol || (m_avPos.x == getPosition().x && !slashing)) && m_hitTime <= 0)
+    if ((!m_auSol || (m_avPos.x == getPosition().x && !slashing)) && m_hitFrames <= 0)
     {
         setPosition(m_avPos);
         m_aDroite = !m_aDroite;
@@ -224,7 +224,7 @@ PJ::PJ(EntityLists* drawable, int p)
         m_stat = { 5000, 5, 5, {0.2,0.2,0.7} };
         m_attaque = { Attaque(this, AllAttTypes::cac, "Sprites/attaque1.png", 0.25, 1.2, 5), Attaque(this, AllAttTypes::cac, "Sprites/attaque1.png", 0.25, 1.2, 5), Attaque(this, AllAttTypes::cac, "Sprites/attaque1.png", 0.25, 1.2, 5) };
     }
-    setPosition(sf::Vector2f(200, 200));
+    setPosition(sf::Vector2f(250, 250));
     m_hp = m_stat.maxHP;
     m_ptrGroup = drawable;
     m_dmgRect.setFillColor(sf::Color::Transparent);
@@ -383,7 +383,7 @@ void PJ::update()
     if (!slashing)
     {
         saut();
-        if (m_hitTime <= 0)
+        if (m_hitFrames <= 0)
         {
             run();
             attack();
@@ -393,10 +393,10 @@ void PJ::update()
         {
             m_ptrGroup->hud->insert(&m_dmgRect);
             m_ptrGroup->ptrAtt->erase(&m_attaque[m_numAtt]);
-            m_hitTime -= 0.016;
+            m_hitFrames -= 1;
         }
     }
-    if (m_hitTime <= 0)
+    if (m_hitFrames <= 0)
     {
         attack();
     }
