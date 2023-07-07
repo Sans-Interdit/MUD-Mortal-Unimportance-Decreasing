@@ -40,10 +40,10 @@ void Unit::hit(int const dmg, double push)
 {
     m_hp -= dmg;
     m_vecteurX = push;
-    m_hitFrames = abs(push)*2;
-    m_ptrGroup->ptrAtt->erase(&m_attaque[m_numAtt]);
-    m_attaque[m_numAtt].setDelay(-m_attaque[m_numAtt].getDelayStatic());
-    m_attAnimTmp = m_attaque[m_numAtt].getAvTmp();
+    m_hitFrames = static_cast<int>(abs(push)*2);
+    m_ptrGroup->ptrAtt->erase(m_attaque[m_numAtt]);
+    m_attaque[m_numAtt]->setDelay(-m_attaque[m_numAtt]->getDelayStatic());
+    m_attAnimTmp = m_attaque[m_numAtt]->getAvTmp();
 }
 
 EntityLists* Unit::getPtrGroup() { return m_ptrGroup; }
@@ -55,6 +55,8 @@ void Unit::setADroite(bool d) { m_aDroite = d; }
 Stats Unit::getStat() { return m_stat; }
 
 int Unit::getNumAtt() { return m_numAtt; }
+
+const type_info& Unit::getType() { return typeid(this); }
 
 void Unit::setNumAtt(int val) { m_numAtt = val; }
 
@@ -120,31 +122,32 @@ Ennemie::Ennemie(EntityLists* drawable, float x, float y)
     m_ptrGroup->ptrEnn->insert(this);
     m_hp = 500;
     m_stat = { 150, 20, 5, std::vector<double>{ 2 } };
-    m_attaque = { Attaque(this, AllAttTypes::cac, "Sprites/Attaque1.png", 0.5, 1.0, 10, 1) };
+    m_attaque = { new CacAtt(this, "Sprites/Attaque1.png", 0.5, 1.0, 10, 1) };
 }
 
 void Ennemie::attack()
 {
-    sf::FloatRect zoneAtt = m_aDroite ? sf::FloatRect{getPosition().x, getPosition().y + m_hitbox.height - m_attaque[m_numAtt].getHitbox().height, m_attaque[m_numAtt].getHitbox().width, m_attaque[m_numAtt].getHitbox().height} : sf::FloatRect{getPosition().x - m_attaque[m_numAtt].getHitbox().width + m_hitbox.width, getPosition().y + m_hitbox.height - m_attaque[m_numAtt].getHitbox().height,m_attaque[m_numAtt].getHitbox().width, m_attaque[m_numAtt].getHitbox().height };
+    sf::FloatRect HB {m_attaque[m_numAtt]->getHitbox()};
+    sf::FloatRect zoneAtt = m_aDroite ? sf::FloatRect{getPosition().x, getPosition().y + m_hitbox.height - HB.height, HB.width, HB.height} : sf::FloatRect{getPosition().x - HB.width + m_hitbox.width, getPosition().y + m_hitbox.height - HB.height,HB.width, HB.height };
     if (zoneAtt.intersects(m_ptrGroup->perso->getHitbox()))
     {
-        if (m_attaque[m_numAtt].getDelay() < -m_stat.AS[m_numAtt])
+        if (m_attaque[m_numAtt]->getDelay() < -m_stat.AS[m_numAtt])
         {
-            m_attAnimTmp = m_attaque[m_numAtt].getAvTmp();
-            m_attaque[m_numAtt].setDelay(m_attaque[m_numAtt].getDelayStatic());
+            m_attAnimTmp = m_attaque[m_numAtt]->getAvTmp();
+            m_attaque[m_numAtt]->setDelay(m_attaque[m_numAtt]->getDelayStatic());
         }
     }
     if (m_attAnimTmp <= 0)
     {
-        if (m_attaque[m_numAtt].getDelay() == m_attaque[m_numAtt].getDelayStatic())
+        if (m_attaque[m_numAtt]->getDelay() == m_attaque[m_numAtt]->getDelayStatic())
         {
             m_vecteurY = (-35 * (m_tmpSaut * m_tmpSaut) / 2 + m_vecteurY > 0) ? 1 : -1;
             m_tmpSaut = 0;
-            m_attaque[m_numAtt].spawn();
+            m_attaque[m_numAtt]->spawn();
         }
         else
         {
-            m_attaque[m_numAtt].update();
+            m_attaque[m_numAtt]->update();
         }
     }
     else
@@ -171,11 +174,11 @@ void Ennemie::update()
 {
     if (m_hp <= 0)
     {
-        m_ptrGroup->ptrAtt->erase(&m_attaque[m_numAtt]);
+        m_ptrGroup->ptrAtt->erase(m_attaque[m_numAtt]);
         m_ptrGroup->ptrEnn->erase(this);
     }
     attack();
-    bool const slashing{ m_attaque[m_numAtt].getDelay() > 0 };
+    bool const slashing{ m_attaque[m_numAtt]->getDelay() > 0 };
     if (!slashing)
     {
         if (m_hitFrames <= 0)
@@ -184,7 +187,7 @@ void Ennemie::update()
         }
         else
         {
-            m_ptrGroup->ptrAtt->erase(&m_attaque[m_numAtt]);
+            m_ptrGroup->ptrAtt->erase(m_attaque[m_numAtt]);
             m_hitFrames -= 1;
         }
     }
@@ -196,7 +199,7 @@ void Ennemie::update()
     }
 }
 
-std::string Ennemie::getType() { return "Ennemie"; }
+const type_info& Ennemie::getType() { return typeid(this); }
 
 //------------------------------------------------------------PJ------------------------------------------------------------
 
@@ -207,22 +210,22 @@ PJ::PJ(EntityLists* drawable, int p)
     case (1):
         setImg("Sprites/billy.png");
         m_stat = { 150, 20, 5, {0.5,0.3,0.3 } };
-        m_attaque = { Attaque(this, AllAttTypes::cac, "Sprites/attaque1.png", 0.20, 1, 3), Attaque(this, AllAttTypes::cac, "Sprites/attaque2.png", 0.25, 1.2, 3), Attaque(this, AllAttTypes::cac, "Sprites/attaque3.png", 0.30, 1.5, 10, 0.25) };
+        m_attaque = { new CacAtt(this, "Sprites/attaque1.png", 0.20, 1, 3), new CacAtt(this, "Sprites/attaque2.png", 0.25, 1.2, 3), new CacAtt(this, "Sprites/attaque3.png", 0.30, 1.5, 10, 0.25) };
         break;
     case (2):
         setImg("Sprites/tanky.png");
-        m_stat = { 200, 30, 4, {0.5, 0.5, 0.5} };
-        m_attaque = { Attaque(this, AllAttTypes::dist, "Sprites/carreau.png", 0.5, 1.2, 5), Attaque(this, AllAttTypes::dist, "Sprites/carreau.png", 0.25, 1.2, 5), Attaque(this, AllAttTypes::dist, "Sprites/carreau.png", 0.25, 1.2, 5) };
+        m_stat = { 200, 30, 4, {0.5} };
+        m_attaque = { new DistAtt(this, "Sprites/carreau.png", 0.5, 1, 10, 0.60) };
         break;
     case (3):
         setImg("Sprites/slimy.png");
         m_stat = { 50, 5, 5, {0.3,0.3,0.3} };
-        m_attaque = { Attaque(this, AllAttTypes::cac, "Sprites/attaque1.png", 0.25, 1.2, 5), Attaque(this, AllAttTypes::cac, "Sprites/attaque1.png", 0.25, 1.2, 5), Attaque(this, AllAttTypes::cac, "Sprites/attaque1.png", 0.25, 1.2, 5) };
+        m_attaque = { new CacAtt(this, "Sprites/attaque1.png", 0.25, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", 0.25, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", 0.25, 1.2, 5) };
         break;
     default:
         setImg("Sprites/billy.png");
         m_stat = { 5000, 5, 5, {0.2,0.2,0.7} };
-        m_attaque = { Attaque(this, AllAttTypes::cac, "Sprites/attaque1.png", 0.25, 1.2, 5), Attaque(this, AllAttTypes::cac, "Sprites/attaque1.png", 0.25, 1.2, 5), Attaque(this, AllAttTypes::cac, "Sprites/attaque1.png", 0.25, 1.2, 5) };
+        m_attaque = { new CacAtt(this,  "Sprites/attaque1.png", 0.25, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", 0.25, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", 0.25, 1.2, 5) };
     }
     setPosition(sf::Vector2f(250, 250));
     m_hp = m_stat.maxHP;
@@ -236,12 +239,12 @@ PJ::PJ(EntityLists* drawable, int p)
 
 void PJ::attack()
 {
-    if (m_attaque[m_numAtt].getDelay() < -m_stat.AS[m_numAtt])
+    if (m_attaque[m_numAtt]->getDelay() < -m_stat.AS[m_numAtt])
     {
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::L) && !m_attHold) || m_attChain)
         {
-            m_attAnimTmp = m_attaque[m_numAtt].getAvTmp();
-            m_attaque[m_numAtt].setDelay(m_attaque[m_numAtt].getDelayStatic());
+            m_attAnimTmp = m_attaque[m_numAtt]->getAvTmp();
+            m_attaque[m_numAtt]->setDelay(m_attaque[m_numAtt]->getDelayStatic());
             m_attChain = false;
             m_attHold = true;
         }
@@ -250,26 +253,26 @@ void PJ::attack()
     {
         m_attHold = false;
     }
-    else if ((m_attaque[m_numAtt].getDelay() <= 0 || m_numAtt != m_attaque.size() - 1) && m_attaque[m_numAtt].getDelay() >= -m_stat.AS[m_numAtt] && !m_attHold)
+    else if ((m_attaque[m_numAtt]->getDelay() <= 0 || m_numAtt != m_attaque.size() - 1) && m_attaque[m_numAtt]->getDelay() >= -m_stat.AS[m_numAtt] && !m_attHold)
     {
         m_attChain = true;
     }
     if (m_attAnimTmp <= 0)
     {
-        if (m_attaque[m_numAtt].getDelay() == m_attaque[m_numAtt].getDelayStatic())
+        if (m_attaque[m_numAtt]->getDelay() == m_attaque[m_numAtt]->getDelayStatic())
         {
             m_vecteurY = (-35 * (m_tmpSaut * m_tmpSaut) / 2 + m_vecteurY > 0) ? 1 : -1;
             m_tmpSaut = 0;
-            m_attaque[m_numAtt].spawn();
+            m_attaque[m_numAtt]->spawn();
         }
         else
         {
-            m_attaque[m_numAtt].update();
-            if (m_attaque[m_numAtt].getDelay() < -0.3 - m_stat.AS[m_numAtt] && m_numAtt != 0)
+            m_attaque[m_numAtt]->update();
+            if (m_attaque[m_numAtt]->getDelay() < -0.3 - m_stat.AS[m_numAtt] && m_numAtt != 0)
             {
-                m_attaque[m_numAtt].setDelay(0);
+                m_attaque[m_numAtt]->setDelay(0);
                 m_numAtt = 0;
-                m_attaque[0].setDelay(-m_stat.AS[0]);
+                m_attaque[0]->setDelay(-m_stat.AS[0]);
             }
             if (m_imgCoord.x != 0) { m_imgCoord.x = 0; }
         }
@@ -346,7 +349,7 @@ jointVar PJ::resetVar()
     m_numAtt = 0;
     m_attAnimTmp = 0;
     m_attChain = 0;
-    m_attaque[m_numAtt].reset();
+    m_attaque[m_numAtt]->reset();
     return { getPosition(),m_vecteurX,m_vecteurY,m_tmpSaut,m_aDroite };
 }
 
@@ -379,20 +382,19 @@ void PJ::update()
         spe();
     }
     */
-    bool const slashing{ m_attaque[m_numAtt].getDelay() > 0 };
+    bool const slashing{ m_attaque[m_numAtt]->getDelay() > 0 };
     if (!slashing)
     {
         saut();
         if (m_hitFrames <= 0)
         {
-            run();
-            attack();
+            (run());
             m_ptrGroup->hud->erase(&m_dmgRect);
         }
         else
         {
             m_ptrGroup->hud->insert(&m_dmgRect);
-            m_ptrGroup->ptrAtt->erase(&m_attaque[m_numAtt]);
+            m_ptrGroup->ptrAtt->erase(m_attaque[m_numAtt]);
             m_hitFrames -= 1;
         }
     }
@@ -403,24 +405,25 @@ void PJ::update()
     physique();
 }
 
-std::string PJ::getType() { return "PJ"; }
+const type_info& PJ::getType() { return typeid(this); }
 
 int PJ::getHP() { return m_hp; }
 
-Attaque::Attaque(Unit* joueur, AllAttTypes type, std::string filepath, double delay, double multiplier, double knockback, double avTmp) : m_delayStatic(delay), m_multiplier(multiplier), m_avTmp(avTmp), m_type(type), m_ptrPerso(joueur), m_knockback(knockback), m_delay(0)
+Attaque::Attaque(Unit* joueur, std::string filepath, double delay, double multiplier, double knockback, double avTmp) : m_delayStatic(delay), m_multiplier(multiplier), m_avTmp(avTmp), m_ptrPerso(joueur), m_knockback(knockback), m_delay(0)
 {
     setImg(filepath);
     setHitbox();
-    if (m_type == AllAttTypes::cac)
-    {
-        setOrigin(0, 25);
-    }
 }
 
 void Attaque::spawn()
 {
-    if (m_type == AllAttTypes::dist)
-    {
+    m_ptrPerso->getPtrGroup()->ptrAtt->insert(this);
+    update();
+}
+
+void DistAtt::spawn()
+{
+
         if (m_ptrPerso->getADroite())
         {
             setPosition(m_ptrPerso->getPosition().x, m_ptrPerso->getPosition().y + 50);
@@ -429,26 +432,23 @@ void Attaque::spawn()
         {
             setPosition(m_ptrPerso->getPosition().x - m_hitbox.width + m_ptrPerso->getHitbox().width, m_ptrPerso->getPosition().y + 50);
         }
-    }
-    setImg(m_imgName);//je ne ais pas pq c'est nécéssaire
-    m_ptrPerso->getPtrGroup()->ptrAtt->insert(this);
-    update();
+    Attaque::spawn();
 }
 
-void Attaque::Cac()
+void CacAtt::update()
 {
     if (m_delay > 0.02)
     {
         if (m_ptrPerso->getADroite())
         {
-            setPosition(m_ptrPerso->getPosition().x, m_ptrPerso->getPosition().y);
+            setPosition(m_ptrPerso->getPosition().x, m_ptrPerso->getPosition().y-25);
         }
         else
         {
-            setPosition(m_ptrPerso->getPosition().x - m_hitbox.width + m_ptrPerso->getHitbox().width, m_ptrPerso->getPosition().y);
+            setPosition(m_ptrPerso->getPosition().x - m_hitbox.width + m_ptrPerso->getHitbox().width, m_ptrPerso->getPosition().y-25);
         }
         setHitbox();
-        if (m_ptrPerso->getType() == "Ennemie")//Tres mal réalisé - a refaire plus tard
+        if (m_ptrPerso->getType() == typeid(Ennemie*))
         {
             Unit* p{ m_ptrPerso->getPtrGroup()->perso };
             if (m_hitbox.intersects(p->getHitbox()) && !std::any_of(m_lstHit.begin(), m_lstHit.end(), [p](Unit* unit) {return unit == p; }))
@@ -457,7 +457,7 @@ void Attaque::Cac()
                 m_lstHit.insert(p);
             }
         }
-        else if (m_ptrPerso->getType() == "PJ")
+        else if (m_ptrPerso->getType() == typeid(PJ*))
         {
             for (Unit* ennemie : *m_ptrPerso->getPtrGroup()->ptrEnn)
             {
@@ -478,9 +478,10 @@ void Attaque::Cac()
         m_ptrPerso->setNumAtt(static_cast<uint16_t>(m_ptrPerso->getStat().AS.size() - 1) > m_ptrPerso->getNumAtt() ? m_ptrPerso->getNumAtt() + 1 : 0);
     }
     m_delay -= 0.016;
+    setTextureRect(sf::IntRect(0, int(!m_ptrPerso->getADroite() * m_img.getSize().y / 2), m_img.getSize().x, int(m_img.getSize().y / 2)));
 }
 
-void Attaque::Dist()
+void DistAtt::update()
 {
     if (m_delay > 0.02)
     {
@@ -493,7 +494,7 @@ void Attaque::Dist()
             move(-10, 0);
         }
         setHitbox();
-        if (m_ptrPerso->getType() == "Ennemie")//Tres mal réalisé - a refaire plus tard
+        if (m_ptrPerso->getType() == typeid(Ennemie*))//Tres mal réalisé - a refaire plus tard
         {
             Unit* p{ m_ptrPerso->getPtrGroup()->perso };
             if (m_hitbox.intersects(p->getHitbox()) && !std::any_of(m_lstHit.begin(), m_lstHit.end(), [p](Unit* unit) {return unit == p; }))
@@ -502,7 +503,7 @@ void Attaque::Dist()
                 reset();
             }
         }
-        else if (m_ptrPerso->getType() == "PJ")
+        else if (m_ptrPerso->getType() == typeid(PJ*))
         {
             for (Unit* ennemie : *m_ptrPerso->getPtrGroup()->ptrEnn)
             {
@@ -521,6 +522,7 @@ void Attaque::Dist()
         m_ptrPerso->setNumAtt((static_cast<uint16_t>(m_ptrPerso->getStat().AS.size() - 1) > m_ptrPerso->getNumAtt()) ? m_ptrPerso->getNumAtt() + 1 : 0);
     }
     m_delay -= 0.016;
+    setTextureRect(sf::IntRect(0, int(!m_ptrPerso->getADroite() * m_img.getSize().y / 2), m_img.getSize().x, int(m_img.getSize().y / 2)));
 }
 
 void Attaque::reset()
@@ -528,22 +530,6 @@ void Attaque::reset()
     m_ptrPerso->getPtrGroup()->ptrAtt->erase(this);
     m_delay = 0;
     m_lstHit.clear();
-}
-
-void Attaque::update()
-{
-    switch (m_type)
-    {
-    case AllAttTypes::cac:
-        Cac();
-        break;
-    case AllAttTypes::dist:
-        Dist();
-        break;
-    default:
-        break;
-    }
-    setTextureRect(sf::IntRect(0, int(!m_ptrPerso->getADroite() * m_img.getSize().y / 2), m_img.getSize().x, int(m_img.getSize().y / 2)));
 }
 
 double Attaque::getDelay() { return m_delay; }

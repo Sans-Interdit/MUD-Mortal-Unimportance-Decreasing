@@ -6,6 +6,7 @@
 #include<vector>
 #include <iostream>
 #include <string>
+#include <typeinfo>
 
 class Entite;
 class Ennemie;
@@ -39,11 +40,4 @@ struct jointVar
     double tmpSaut;
     bool aDroite;
 };
-
-enum class AllAttTypes
-{
-    cac,
-    dist
-};
-
 #endif

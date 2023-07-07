@@ -39,10 +39,10 @@ public:
     int getNumAtt();
     void setNumAtt(int val);
     void hit(int const dmg, double push);
-    virtual std::string getType() = 0;
+    virtual const type_info& getType();//probablement améliorable
 protected:
     int m_hp{ 0 };
-    std::vector<Attaque> m_attaque;
+    std::vector<Attaque*> m_attaque;
     int m_hitFrames{ 0 };
     sf::Vector2f m_avPos = getPosition();
     bool m_aDroite{ true };
@@ -66,18 +66,16 @@ class Attaque : public Entite
 {
 public:
     Attaque() = default;
-    Attaque(Unit* joueur, AllAttTypes type, std::string filepath, double delay, double multiplier, double knockback, double avTmp = 0);
+    Attaque(Unit* joueur, std::string filepath, double delay, double multiplier, double knockback, double avTmp = 0);
     //void next();
     void reset();
-    void update();
     double getDelay();
     double getDelayStatic();//const
     double getAvTmp();
     void setDelay(double val);
-    void spawn();
-    void Cac();
-    void Dist();
-private:
+    void virtual spawn();
+    void virtual update() = 0;
+protected:
     std::unordered_set<Unit*> m_lstHit;
     Unit* m_ptrPerso;
     double m_delay{ 0 };
@@ -85,7 +83,21 @@ private:
     double m_multiplier{ 1 };
     double m_knockback{ 0 };
     double m_avTmp{ 0 };
-    AllAttTypes m_type;// type d'attaque : 0 Cac / 1 distance
+};
+
+class CacAtt : public Attaque
+{
+    using Attaque::Attaque;
+public:
+    void update();
+};
+
+class DistAtt : public Attaque
+{
+    using Attaque::Attaque;
+public:
+    void spawn();
+    void update();
 };
 
 class Ennemie : public SolUnit
@@ -95,7 +107,7 @@ public:
     void update();
     void attack();
     void run();
-    std::string getType();
+    const type_info& getType();
 protected:
     double m_tmp{ 0 };
 };
@@ -118,7 +130,7 @@ public:
     jointVar resetVar();
     void recoverVar(jointVar vars);
     int getHP();
-    std::string getType();
+    const type_info& getType();
 private:
     bool m_doubleSaut{ true };
     bool m_sbMaintenue{ false };
