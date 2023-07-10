@@ -75,6 +75,8 @@ public:
     void setDelay(double val);
     void virtual spawn();
     void virtual update() = 0;
+    const virtual type_info& getType() = 0;
+
 protected:
     std::unordered_set<Unit*> m_lstHit;
     Unit* m_ptrPerso;
@@ -90,6 +92,7 @@ class CacAtt : public Attaque
     using Attaque::Attaque;
 public:
     void update();
+    const type_info& getType();
 };
 
 class DistAtt : public Attaque
@@ -98,6 +101,7 @@ class DistAtt : public Attaque
 public:
     void spawn();
     void update();
+    const type_info& getType();
 };
 
 class Ennemie : public SolUnit

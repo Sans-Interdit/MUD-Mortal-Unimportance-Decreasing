@@ -85,6 +85,7 @@ void SolUnit::physique()
     {
         sf::FloatRect const hitboxPF{ plateforme->getHitbox() };
         bool axePF{ m_avPos.x + m_hitbox.width > plateforme->getPosition().x && m_avPos.x < plateforme->getPosition().x + hitboxPF.width };
+        std::cout << "f";
         if (hitboxPF.intersects(zonePied) && (axePF || (abs(plateforme->getPosition().y - (getPosition().y + m_hitbox.height)) <= 10)&&m_auSol))
         {
             while (hitboxPF.top < getPosition().y + m_hitbox.height - 5)
@@ -172,6 +173,7 @@ void Ennemie::run()
 
 void Ennemie::update()
 {
+    std::cout << getPosition().y << std::endl;
     if (m_hp <= 0)
     {
         m_ptrGroup->ptrAtt->erase(m_attaque[m_numAtt]);
@@ -382,13 +384,17 @@ void PJ::update()
         spe();
     }
     */
-    bool const slashing{ m_attaque[m_numAtt]->getDelay() > 0 };
-    if (!slashing)
+    bool const casting{ m_attAnimTmp > 0 || (m_attaque[m_numAtt]->getDelay() > 0 && m_attaque[m_numAtt]->getType() == typeid(CacAtt*)) };
+    if (m_hitFrames <= 0)//casting avant attack pour pas changer direction a la fin du cast
+    {
+        attack();
+    }
+    if (!casting)
     {
         saut();
         if (m_hitFrames <= 0)
         {
-            (run());
+            run();
             m_ptrGroup->hud->erase(&m_dmgRect);
         }
         else
@@ -397,10 +403,6 @@ void PJ::update()
             m_ptrGroup->ptrAtt->erase(m_attaque[m_numAtt]);
             m_hitFrames -= 1;
         }
-    }
-    if (m_hitFrames <= 0)
-    {
-        attack();
     }
     physique();
 }
@@ -417,23 +419,28 @@ Attaque::Attaque(Unit* joueur, std::string filepath, double delay, double multip
 
 void Attaque::spawn()
 {
+    //setImg(m_imgName);//je ne sais pas pq c'estait nécéssaire
     m_ptrPerso->getPtrGroup()->ptrAtt->insert(this);
+    setTextureRect(sf::IntRect(0, int(!m_ptrPerso->getADroite() * m_img.getSize().y / 2), m_img.getSize().x, int(m_img.getSize().y / 2)));
     update();
 }
 
-void DistAtt::spawn()
+void Attaque::reset()
 {
-
-        if (m_ptrPerso->getADroite())
-        {
-            setPosition(m_ptrPerso->getPosition().x, m_ptrPerso->getPosition().y + 50);
-        }
-        else
-        {
-            setPosition(m_ptrPerso->getPosition().x - m_hitbox.width + m_ptrPerso->getHitbox().width, m_ptrPerso->getPosition().y + 50);
-        }
-    Attaque::spawn();
+    m_ptrPerso->getPtrGroup()->ptrAtt->erase(this);
+    m_delay = 0;
+    m_lstHit.clear();
 }
+
+double Attaque::getDelay() { return m_delay; }
+
+double Attaque::getDelayStatic() { return m_delayStatic; }
+
+double Attaque::getAvTmp() { return m_avTmp; }
+
+void Attaque::setDelay(double val) { m_delay = val; }
+
+
 
 void CacAtt::update()
 {
@@ -441,11 +448,11 @@ void CacAtt::update()
     {
         if (m_ptrPerso->getADroite())
         {
-            setPosition(m_ptrPerso->getPosition().x, m_ptrPerso->getPosition().y-25);
+            setPosition(m_ptrPerso->getPosition().x, m_ptrPerso->getPosition().y - 25);
         }
         else
         {
-            setPosition(m_ptrPerso->getPosition().x - m_hitbox.width + m_ptrPerso->getHitbox().width, m_ptrPerso->getPosition().y-25);
+            setPosition(m_ptrPerso->getPosition().x - m_hitbox.width + m_ptrPerso->getHitbox().width, m_ptrPerso->getPosition().y - 25);
         }
         setHitbox();
         if (m_ptrPerso->getType() == typeid(Ennemie*))
@@ -478,14 +485,30 @@ void CacAtt::update()
         m_ptrPerso->setNumAtt(static_cast<uint16_t>(m_ptrPerso->getStat().AS.size() - 1) > m_ptrPerso->getNumAtt() ? m_ptrPerso->getNumAtt() + 1 : 0);
     }
     m_delay -= 0.016;
-    setTextureRect(sf::IntRect(0, int(!m_ptrPerso->getADroite() * m_img.getSize().y / 2), m_img.getSize().x, int(m_img.getSize().y / 2)));
+}
+
+const type_info& CacAtt::getType() { return typeid(this); }
+
+
+
+void DistAtt::spawn()
+{
+    if (m_ptrPerso->getADroite())
+    {
+        setPosition(m_ptrPerso->getPosition().x, m_ptrPerso->getPosition().y + 27);
+    }
+    else
+    {
+        setPosition(m_ptrPerso->getPosition().x - m_hitbox.width + m_ptrPerso->getHitbox().width, m_ptrPerso->getPosition().y + 27);
+    }
+    Attaque::spawn();
 }
 
 void DistAtt::update()
 {
     if (m_delay > 0.02)
     {
-        if (m_ptrPerso->getADroite())
+        if (getTextureRect().top == 0)
         {
             move(10, 0);
         }
@@ -494,7 +517,7 @@ void DistAtt::update()
             move(-10, 0);
         }
         setHitbox();
-        if (m_ptrPerso->getType() == typeid(Ennemie*))//Tres mal réalisé - a refaire plus tard
+        if (m_ptrPerso->getType() == typeid(Ennemie*))
         {
             Unit* p{ m_ptrPerso->getPtrGroup()->perso };
             if (m_hitbox.intersects(p->getHitbox()) && !std::any_of(m_lstHit.begin(), m_lstHit.end(), [p](Unit* unit) {return unit == p; }))
@@ -509,7 +532,7 @@ void DistAtt::update()
             {
                 if (m_hitbox.intersects(ennemie->getHitbox()))
                 {
-                    ennemie->hit(static_cast<int>(m_ptrPerso->getStat().AD * m_multiplier), m_ptrPerso->getADroite() ? m_knockback : -m_knockback);
+                    ennemie->hit(static_cast<int>(m_ptrPerso->getStat().AD * m_multiplier), getTextureRect().top == 0 ? m_knockback : -m_knockback);
                     reset();
                     break;
                 }
@@ -522,20 +545,6 @@ void DistAtt::update()
         m_ptrPerso->setNumAtt((static_cast<uint16_t>(m_ptrPerso->getStat().AS.size() - 1) > m_ptrPerso->getNumAtt()) ? m_ptrPerso->getNumAtt() + 1 : 0);
     }
     m_delay -= 0.016;
-    setTextureRect(sf::IntRect(0, int(!m_ptrPerso->getADroite() * m_img.getSize().y / 2), m_img.getSize().x, int(m_img.getSize().y / 2)));
 }
 
-void Attaque::reset()
-{
-    m_ptrPerso->getPtrGroup()->ptrAtt->erase(this);
-    m_delay = 0;
-    m_lstHit.clear();
-}
-
-double Attaque::getDelay() { return m_delay; }
-
-double Attaque::getDelayStatic() { return m_delayStatic; }
-
-double Attaque::getAvTmp() { return m_avTmp; }
-
-void Attaque::setDelay(double val) { m_delay = val; }
+const type_info& DistAtt::getType() { return typeid(this); }
