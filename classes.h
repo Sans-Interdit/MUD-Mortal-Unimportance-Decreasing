@@ -140,7 +140,6 @@ private:
     bool m_sbMaintenue{ false };
     bool m_attChain{ false };
     double m_speTmp{ 10 };
-    double m_mercyTmp{ 0 };
     bool m_attHold{ false };
     sf::RectangleShape m_dmgRect {sf::Vector2f{1220, 720}};
 };

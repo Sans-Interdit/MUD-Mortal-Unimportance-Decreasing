@@ -64,9 +64,9 @@ void SolUnit::physique()
 {
     m_avPos = getPosition();
 
-    double posY{ -35 * (m_tmpSaut * m_tmpSaut) / 2 + m_vecteurY };
+    double posY{ -0.0045 * (m_tmpSaut * m_tmpSaut) + m_vecteurY };
     move(static_cast<float>(m_vecteurX), static_cast<float>(-posY));
-    m_tmpSaut += 0.016;
+    m_tmpSaut += 1;
 
     if (m_vecteurX > 0)
     {
@@ -85,7 +85,6 @@ void SolUnit::physique()
     {
         sf::FloatRect const hitboxPF{ plateforme->getHitbox() };
         bool axePF{ m_avPos.x + m_hitbox.width > plateforme->getPosition().x && m_avPos.x < plateforme->getPosition().x + hitboxPF.width };
-        std::cout << "f";
         if (hitboxPF.intersects(zonePied) && (axePF || (abs(plateforme->getPosition().y - (getPosition().y + m_hitbox.height)) <= 10)&&m_auSol))
         {
             while (hitboxPF.top < getPosition().y + m_hitbox.height - 5)
@@ -124,6 +123,9 @@ Ennemie::Ennemie(EntityLists* drawable, float x, float y)
     m_hp = 500;
     m_stat = { 150, 20, 5, std::vector<double>{ 2 } };
     m_attaque = { new CacAtt(this, "Sprites/Attaque1.png", 0.5, 1.0, 10, 1) };
+    for (auto& e : m_stat.AS) {
+        e *= 60;
+    }
 }
 
 void Ennemie::attack()
@@ -142,7 +144,7 @@ void Ennemie::attack()
     {
         if (m_attaque[m_numAtt]->getDelay() == m_attaque[m_numAtt]->getDelayStatic())
         {
-            m_vecteurY = (-35 * (m_tmpSaut * m_tmpSaut) / 2 + m_vecteurY > 0) ? 1 : -1;
+            m_vecteurY = (-0.0045 * (m_tmpSaut * m_tmpSaut) + m_vecteurY > 0) ? 1 : -1;
             m_tmpSaut = 0;
             m_attaque[m_numAtt]->spawn();
         }
@@ -153,7 +155,7 @@ void Ennemie::attack()
     }
     else
     {
-        m_attAnimTmp -= 0.016;
+        m_attAnimTmp -= 1;
     }
 }
 
@@ -162,18 +164,15 @@ void Ennemie::run()
     if (m_aDroite)
     {
         m_vecteurX = 2;
-        m_tmp += 0.016;
     }
     else
     {
         m_vecteurX = -2;
-        m_tmp -= 0.016;
     }
 }
 
 void Ennemie::update()
 {
-    std::cout << getPosition().y << std::endl;
     if (m_hp <= 0)
     {
         m_ptrGroup->ptrAtt->erase(m_attaque[m_numAtt]);
@@ -194,7 +193,7 @@ void Ennemie::update()
         }
     }
     physique();
-    if ((!m_auSol || (m_avPos.x == getPosition().x && !slashing)) && m_hitFrames <= 0)
+    if ((!m_auSol || (m_avPos.x == getPosition().x && !slashing)) && m_hitFrames <= 0 && m_tmpSaut <= 1)
     {
         setPosition(m_avPos);
         m_aDroite = !m_aDroite;
@@ -228,6 +227,9 @@ PJ::PJ(EntityLists* drawable, int p)
         setImg("Sprites/billy.png");
         m_stat = { 5000, 5, 5, {0.2,0.2,0.7} };
         m_attaque = { new CacAtt(this,  "Sprites/attaque1.png", 0.25, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", 0.25, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", 0.25, 1.2, 5) };
+    }
+    for (auto & e : m_stat.AS) {
+        e *= 60;
     }
     setPosition(sf::Vector2f(250, 250));
     m_hp = m_stat.maxHP;
@@ -263,14 +265,14 @@ void PJ::attack()
     {
         if (m_attaque[m_numAtt]->getDelay() == m_attaque[m_numAtt]->getDelayStatic())
         {
-            m_vecteurY = (-35 * (m_tmpSaut * m_tmpSaut) / 2 + m_vecteurY > 0) ? 1 : -1;
+            m_vecteurY = (-0.0045* (m_tmpSaut * m_tmpSaut) + m_vecteurY > 0) ? 1 : -1;
             m_tmpSaut = 0;
             m_attaque[m_numAtt]->spawn();
         }
         else
         {
             m_attaque[m_numAtt]->update();
-            if (m_attaque[m_numAtt]->getDelay() < -0.3 - m_stat.AS[m_numAtt] && m_numAtt != 0)
+            if (m_attaque[m_numAtt]->getDelay() < -0.3 * 60 - m_stat.AS[m_numAtt] && m_numAtt != 0)
             {
                 m_attaque[m_numAtt]->setDelay(0);
                 m_numAtt = 0;
@@ -282,7 +284,7 @@ void PJ::attack()
     else
     {
         if (m_imgCoord.x != 1) { m_imgCoord.x = 1; }
-        m_attAnimTmp -= 0.016;
+        m_attAnimTmp -= 1;
     }
 }
 
@@ -343,7 +345,7 @@ void PJ::spe()
             move(-17, 0);
         }
     }
-    m_speTmp += 0.016;
+    m_speTmp += 1;
 }
 
 jointVar PJ::resetVar()
@@ -369,8 +371,10 @@ void PJ::recoverVar(jointVar vars)
 
 void PJ::update()
 {
+    std::cout << m_attaque[m_numAtt]->getDelay() << std::endl;
+
     setTextureRect(sf::IntRect(m_imgCoord.x * 40, int(!m_aDroite) * 120, 40, 120));
-    if (!m_auSol && !m_sbMaintenue && -35 * (m_tmpSaut * m_tmpSaut) / 2 + m_vecteurY > 0 && m_doubleSaut)
+    if (!m_auSol && !m_sbMaintenue && -0.0045 * (m_tmpSaut * m_tmpSaut) + m_vecteurY > 0 && m_doubleSaut)
     {
         m_vecteurY -= 1;
     }
@@ -411,7 +415,7 @@ const type_info& PJ::getType() { return typeid(this); }
 
 int PJ::getHP() { return m_hp; }
 
-Attaque::Attaque(Unit* joueur, std::string filepath, double delay, double multiplier, double knockback, double avTmp) : m_delayStatic(delay), m_multiplier(multiplier), m_avTmp(avTmp), m_ptrPerso(joueur), m_knockback(knockback), m_delay(0)
+Attaque::Attaque(Unit* joueur, std::string filepath, double delay, double multiplier, double knockback, double avTmp) : m_delayStatic(delay*60), m_multiplier(multiplier), m_avTmp(avTmp*60), m_ptrPerso(joueur), m_knockback(knockback), m_delay(0)
 {
     setImg(filepath);
     setHitbox();
@@ -444,7 +448,7 @@ void Attaque::setDelay(double val) { m_delay = val; }
 
 void CacAtt::update()
 {
-    if (m_delay > 0.02)
+    if (m_delay > 1)
     {
         if (m_ptrPerso->getADroite())
         {
@@ -484,7 +488,7 @@ void CacAtt::update()
         reset();
         m_ptrPerso->setNumAtt(static_cast<uint16_t>(m_ptrPerso->getStat().AS.size() - 1) > m_ptrPerso->getNumAtt() ? m_ptrPerso->getNumAtt() + 1 : 0);
     }
-    m_delay -= 0.016;
+    m_delay -= 1;
 }
 
 const type_info& CacAtt::getType() { return typeid(this); }
@@ -506,7 +510,7 @@ void DistAtt::spawn()
 
 void DistAtt::update()
 {
-    if (m_delay > 0.02)
+    if (m_delay > 1)
     {
         if (getTextureRect().top == 0)
         {
@@ -544,7 +548,7 @@ void DistAtt::update()
         reset();
         m_ptrPerso->setNumAtt((static_cast<uint16_t>(m_ptrPerso->getStat().AS.size() - 1) > m_ptrPerso->getNumAtt()) ? m_ptrPerso->getNumAtt() + 1 : 0);
     }
-    m_delay -= 0.016;
+    m_delay -= 1;
 }
 
 const type_info& DistAtt::getType() { return typeid(this); }
