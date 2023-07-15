@@ -36,14 +36,15 @@ Plateforme::Plateforme(float const x, float const y, std::string type)
     setHitbox();
 }
 
-void Unit::hit(int const dmg, double push)
+void Unit::hit(int const dmg, double push, double kbY = 0)
 {
     m_hp -= dmg;
     m_vecteurX = push;
-    m_hitFrames = static_cast<int>(abs(push)*2);
+    if (kbY == 0) { m_vecteurY = kbY; }
+    m_hitFrames = static_cast<int>(abs(push > kbY ? push : kbY) * 2);
     m_ptrGroup->ptrAtt->erase(m_attaque[m_numAtt]);
-    m_attaque[m_numAtt]->setDelay(-m_attaque[m_numAtt]->getDelayStatic());
-    m_attAnimTmp = m_attaque[m_numAtt]->getAvTmp();
+    m_attaque[m_numAtt]->setDelay(0);
+    m_attAnimTmp = 0;
 }
 
 EntityLists* Unit::getPtrGroup() { return m_ptrGroup; }
@@ -58,7 +59,11 @@ int Unit::getNumAtt() { return m_numAtt; }
 
 const type_info& Unit::getType() { return typeid(this); }
 
-void Unit::setNumAtt(int val) { m_numAtt = val; }
+void Unit::nextAtt() 
+{
+    m_cooldown = 0;
+    m_numAtt = m_stat.AS.size() - 1 > m_numAtt ? m_numAtt + 1 : 0;
+}
 
 void SolUnit::physique()
 {
@@ -150,7 +155,7 @@ void Ennemie::attack()
         }
         else
         {
-            m_attaque[m_numAtt]->update();
+            //m_attaque[m_numAtt]->update();
         }
     }
     else
@@ -193,6 +198,7 @@ void Ennemie::update()
         }
     }
     physique();
+    //bug restant : tombe si se retourne et attaque en meme tmp
     if ((!m_auSol || (m_avPos.x == getPosition().x && !slashing)) && m_hitFrames <= 0 && m_tmpSaut <= 1)
     {
         setPosition(m_avPos);
@@ -243,43 +249,45 @@ PJ::PJ(EntityLists* drawable, int p)
 
 void PJ::attack()
 {
-    if (m_attaque[m_numAtt]->getDelay() < -m_stat.AS[m_numAtt])
+    if (m_attaque[m_numAtt]->getDelay()<=0)//semble fonctionner plus de test pour etre sur
     {
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::L) && !m_attHold) || m_attChain)
+        if (m_cooldown > m_stat.AS[m_numAtt] + 0.3 * 60)
         {
-            m_attAnimTmp = m_attaque[m_numAtt]->getAvTmp();
-            m_attaque[m_numAtt]->setDelay(m_attaque[m_numAtt]->getDelayStatic());
-            m_attChain = false;
-            m_attHold = true;
+            if (m_numAtt != 0) { m_numAtt = 0; }
         }
+        else
+        {
+            m_cooldown += 1;
+        }
+        if (m_cooldown >= m_stat.AS[m_numAtt])
+        {
+            if ((sf::Keyboard::isKeyPressed(sf::Keyboard::L) && !m_attHold) || m_attChain)
+            {
+                m_attAnimTmp = m_attaque[m_numAtt]->getAvTmp();
+                m_attaque[m_numAtt]->setDelay(m_attaque[m_numAtt]->getDelayStatic());
+                m_attChain = false;
+                m_attHold = true;
+            }
+        }
+
     }
     if (!sf::Keyboard::isKeyPressed(sf::Keyboard::L))
     {
         m_attHold = false;
     }
-    else if ((m_attaque[m_numAtt]->getDelay() <= 0 || m_numAtt != m_attaque.size() - 1) && m_attaque[m_numAtt]->getDelay() >= -m_stat.AS[m_numAtt] && !m_attHold)
+    else if ((m_numAtt != 0 && m_cooldown < m_stat.AS[m_numAtt] || m_numAtt != m_attaque.size() - 1 && m_attaque[m_numAtt]->getDelay() > 0) && !m_attHold)
     {
         m_attChain = true;
     }
     if (m_attAnimTmp <= 0)
     {
-        if (m_attaque[m_numAtt]->getDelay() == m_attaque[m_numAtt]->getDelayStatic())
+        if (m_attaque[m_numAtt]->getDelay() == m_attaque[m_numAtt]->getDelayStatic())//peut etre changer par find algo
         {
             m_vecteurY = (-0.0045* (m_tmpSaut * m_tmpSaut) + m_vecteurY > 0) ? 1 : -1;
             m_tmpSaut = 0;
             m_attaque[m_numAtt]->spawn();
         }
-        else
-        {
-            m_attaque[m_numAtt]->update();
-            if (m_attaque[m_numAtt]->getDelay() < -0.3 * 60 - m_stat.AS[m_numAtt] && m_numAtt != 0)
-            {
-                m_attaque[m_numAtt]->setDelay(0);
-                m_numAtt = 0;
-                m_attaque[0]->setDelay(-m_stat.AS[0]);
-            }
-            if (m_imgCoord.x != 0) { m_imgCoord.x = 0; }
-        }
+        if (m_imgCoord.x != 0) { m_imgCoord.x = 0; }
     }
     else
     {
@@ -307,13 +315,13 @@ void PJ::saut()
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
     {
         {
-            if (m_auSol&& !m_sbMaintenue)
+            if (m_auSol && !m_sbMaintenue)
             {
                 m_vecteurY = 7;
                 m_auSol = false;
                 m_sbMaintenue = true;
             }
-            else if (m_doubleSaut&& !m_sbMaintenue)
+            else if (m_doubleSaut && !m_sbMaintenue)
             {
                 m_tmpSaut = 0;
                 m_vecteurY = 4;
@@ -371,7 +379,6 @@ void PJ::recoverVar(jointVar vars)
 
 void PJ::update()
 {
-    std::cout << m_attaque[m_numAtt]->getDelay() << std::endl;
 
     setTextureRect(sf::IntRect(m_imgCoord.x * 40, int(!m_aDroite) * 120, 40, 120));
     if (!m_auSol && !m_sbMaintenue && -0.0045 * (m_tmpSaut * m_tmpSaut) + m_vecteurY > 0 && m_doubleSaut)
@@ -388,6 +395,7 @@ void PJ::update()
         spe();
     }
     */
+    //bug : peut changer direction pendant la première frame d'attaque
     bool const casting{ m_attAnimTmp > 0 || (m_attaque[m_numAtt]->getDelay() > 0 && m_attaque[m_numAtt]->getType() == typeid(CacAtt*)) };
     if (m_hitFrames <= 0)//casting avant attack pour pas changer direction a la fin du cast
     {
@@ -426,13 +434,11 @@ void Attaque::spawn()
     //setImg(m_imgName);//je ne sais pas pq c'estait nécéssaire
     m_ptrPerso->getPtrGroup()->ptrAtt->insert(this);
     setTextureRect(sf::IntRect(0, int(!m_ptrPerso->getADroite() * m_img.getSize().y / 2), m_img.getSize().x, int(m_img.getSize().y / 2)));
-    update();
 }
 
 void Attaque::reset()
 {
     m_ptrPerso->getPtrGroup()->ptrAtt->erase(this);
-    m_delay = 0;
     m_lstHit.clear();
 }
 
@@ -483,10 +489,10 @@ void CacAtt::update()
             }
         }
     }
-    else if (m_delay > 0)
+    else if (m_delay == 1)
     {
         reset();
-        m_ptrPerso->setNumAtt(static_cast<uint16_t>(m_ptrPerso->getStat().AS.size() - 1) > m_ptrPerso->getNumAtt() ? m_ptrPerso->getNumAtt() + 1 : 0);
+        m_ptrPerso->nextAtt();
     }
     m_delay -= 1;
 }
@@ -546,7 +552,7 @@ void DistAtt::update()
     else if (m_delay > 0)
     {
         reset();
-        m_ptrPerso->setNumAtt((static_cast<uint16_t>(m_ptrPerso->getStat().AS.size() - 1) > m_ptrPerso->getNumAtt()) ? m_ptrPerso->getNumAtt() + 1 : 0);
+        m_ptrPerso->nextAtt();
     }
     m_delay -= 1;
 }

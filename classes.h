@@ -37,8 +37,8 @@ public:
     void setADroite(bool d);
     Stats getStat();
     int getNumAtt();
-    void setNumAtt(int val);
-    void hit(int const dmg, double push);
+    void nextAtt();
+    void hit(int const dmg, double push, double kbY);
     virtual const type_info& getType();//probablement améliorable
 protected:
     int m_hp{ 0 };
@@ -51,6 +51,8 @@ protected:
     Stats m_stat;
     int m_numAtt{ 0 };
     double m_vecteurX{ 0 };
+    double m_vecteurY{ 0 };
+    double m_cooldown{ 0 };
 };
 
 class SolUnit : public Unit
@@ -58,7 +60,6 @@ class SolUnit : public Unit
 protected:
     void physique();
     bool m_auSol{ false };
-    double m_vecteurY{ 0 };
     double m_tmpSaut{ 0 };
 };
 

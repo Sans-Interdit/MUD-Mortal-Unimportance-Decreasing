@@ -15,7 +15,7 @@ int main()
     std::unordered_set<Plateforme*> lstPF;
     std::unordered_set<Ennemie*> lstEnn;
     EntityLists drawable{ &lstR, &lstPF, &lstEnn, &lstProj, &lstAtt };
-    
+
     int level[20][20]{//la carte du niveau dans un tableau en 2 dimensions
         { 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2 },
         { 2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2 },
@@ -57,7 +57,7 @@ int main()
     int persoIndex = 0;
     std::array<PJ, 3> persos{PJ(& drawable, 1), PJ(&drawable, 2), PJ(&drawable, 3)};
     drawable.perso = &persos[persoIndex];
-    Ennemie mechant(&drawable, 850, 650);
+    //Ennemie mechant(&drawable, 850, 650);
 
     while (window.isOpen())
     {
@@ -97,6 +97,12 @@ int main()
         }
         for (Attaque* att : *drawable.ptrAtt)
         {
+            size_t t = drawable.ptrAtt->size();
+            att->update();
+            if (drawable.ptrAtt->size() != t)
+            {
+                break;
+            }
             window.draw(*att);
         }
         for (Ennemie* enn : *drawable.ptrEnn)
