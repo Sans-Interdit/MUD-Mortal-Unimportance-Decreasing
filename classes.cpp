@@ -41,7 +41,7 @@ void Unit::hit(int const dmg, double push, double kbY = 0)
     m_hp -= dmg;
     m_vecteurX = push;
     if (kbY == 0) { m_vecteurY = kbY; }
-    m_hitFrames = static_cast<int>(abs(push > kbY ? push : kbY) * 2);
+    m_hitFrames = static_cast<int>(abs(push) > abs(kbY) ? abs(push) : abs(kbY) * 2);
     m_ptrGroup->ptrAtt->erase(m_attaque[m_numAtt]);
     m_attaque[m_numAtt]->setDelay(0);
     m_attAnimTmp = 0;
@@ -217,12 +217,12 @@ PJ::PJ(EntityLists* drawable, int p)
     case (1):
         setImg("Sprites/billy.png");
         m_stat = { 150, 20, 5, {0.5,0.3,0.3 } };
-        m_attaque = { new CacAtt(this, "Sprites/attaque1.png", 0.20, 1, 3), new CacAtt(this, "Sprites/attaque2.png", 0.25, 1.2, 3), new CacAtt(this, "Sprites/attaque3.png", 0.30, 1.5, 10, 0.25) };
+        m_attaque = { new CacAtt(this, "Sprites/attaque1.png", 0.20, 1, 3), new CacAtt(this, "Sprites/attaque1.png", 0.25, 1.2, 3), new CacAtt(this, "Sprites/attaque3.png", 0.30, 1.5, 10, 0.25) };
         break;
     case (2):
         setImg("Sprites/tanky.png");
-        m_stat = { 200, 30, 4, {0.5} };
-        m_attaque = { new DistAtt(this, "Sprites/carreau.png", 0.5, 1, 10, 0.60) };
+        m_stat = { 200, 30, 4, {0.5,0.2} };
+        m_attaque = { new CacAtt(this, "Sprites/attaque2.png", 0.20, 1, 3, 0.5), new DistAtt(this, "Sprites/carreau.png", 1, 1, 10, 0.5) };
         break;
     case (3):
         setImg("Sprites/slimy.png");
@@ -338,22 +338,29 @@ void PJ::saut()
 
 void PJ::spe()
 {
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::M) && m_speTmp > 0.4)
+    if (m_speTmp > -0.25 * 60)
     {
-        m_speTmp = 0;
+        if (m_speTmp > 0)
+        {
+            if (m_aDroite)
+            {
+                move(17, 0);
+            }
+            else
+            {
+                move(-17, 0);
+            }
+        }
+        m_speTmp -= 1;
     }
-    else if (m_speTmp < 0.15)
+    else 
     {
-        if (m_aDroite)
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
         {
-            move(17, 0);
-        }
-        else
-        {
-            move(-17, 0);
+            m_speTmp = 0.15 * 60;
         }
     }
-    m_speTmp += 1;
+    std::cout << m_speTmp << std::endl;
 }
 
 jointVar PJ::resetVar()
@@ -389,16 +396,10 @@ void PJ::update()
     {
         m_doubleSaut = true;
     }
-    /*
-    if (slashing ^ dashing)
-    {
-        spe();
-    }
-    */
-    //bug : peut changer direction pendant la première frame d'attaque
-    bool const casting{ m_attAnimTmp > 0 || (m_attaque[m_numAtt]->getDelay() > 0 && m_attaque[m_numAtt]->getType() == typeid(CacAtt*)) };
+    bool const casting{ m_speTmp>0 || m_attAnimTmp > 0 || (m_attaque[m_numAtt]->getDelay() > 0 && m_attaque[m_numAtt]->getType() == typeid(CacAtt*)) };
     if (m_hitFrames <= 0)//casting avant attack pour pas changer direction a la fin du cast
     {
+        spe();//-------------------------------bug quand dans mur-----------------------------
         attack();
     }
     if (!casting)
@@ -438,8 +439,8 @@ void Attaque::spawn()
 
 void Attaque::reset()
 {
+    m_delay = 0;
     m_ptrPerso->getPtrGroup()->ptrAtt->erase(this);
-    m_lstHit.clear();
 }
 
 double Attaque::getDelay() { return m_delay; }
@@ -452,11 +453,17 @@ void Attaque::setDelay(double val) { m_delay = val; }
 
 
 
+void CacAtt::reset()
+{
+    Attaque::reset();
+    m_lstHit.clear();
+}
+
 void CacAtt::update()
 {
     if (m_delay > 1)
     {
-        if (m_ptrPerso->getADroite())
+        if (getTextureRect().top == 0)
         {
             setPosition(m_ptrPerso->getPosition().x, m_ptrPerso->getPosition().y - 25);
         }
@@ -470,7 +477,7 @@ void CacAtt::update()
             Unit* p{ m_ptrPerso->getPtrGroup()->perso };
             if (m_hitbox.intersects(p->getHitbox()) && !std::any_of(m_lstHit.begin(), m_lstHit.end(), [p](Unit* unit) {return unit == p; }))
             {
-                p->hit(static_cast<int>(m_ptrPerso->getStat().AD * m_multiplier), m_ptrPerso->getADroite() ? m_knockback : -m_knockback);
+                p->hit(static_cast<int>(m_ptrPerso->getStat().AD * m_multiplier), getTextureRect().top == 0 ? m_knockback : -m_knockback);
                 m_lstHit.insert(p);
             }
         }
@@ -482,7 +489,7 @@ void CacAtt::update()
                 {
                     if (!std::any_of(m_lstHit.begin(), m_lstHit.end(), [ennemie](Unit* unit) {return unit == ennemie; }))
                     {
-                        ennemie->hit(static_cast<int>(m_ptrPerso->getStat().AD * m_multiplier), m_ptrPerso->getADroite() ? m_knockback : -m_knockback);
+                        ennemie->hit(static_cast<int>(m_ptrPerso->getStat().AD * m_multiplier), getTextureRect().top == 0 ? m_knockback : -m_knockback);
                         m_lstHit.insert(ennemie);
                     }
                 }
@@ -511,6 +518,7 @@ void DistAtt::spawn()
     {
         setPosition(m_ptrPerso->getPosition().x - m_hitbox.width + m_ptrPerso->getHitbox().width, m_ptrPerso->getPosition().y + 27);
     }
+    m_ptrPerso->nextAtt();
     Attaque::spawn();
 }
 
@@ -530,11 +538,8 @@ void DistAtt::update()
         if (m_ptrPerso->getType() == typeid(Ennemie*))
         {
             Unit* p{ m_ptrPerso->getPtrGroup()->perso };
-            if (m_hitbox.intersects(p->getHitbox()) && !std::any_of(m_lstHit.begin(), m_lstHit.end(), [p](Unit* unit) {return unit == p; }))
-            {
-                p->hit(static_cast<int>(m_ptrPerso->getStat().AD * m_multiplier), m_ptrPerso->getADroite() ? m_knockback : -m_knockback);
-                reset();
-            }
+            p->hit(static_cast<int>(m_ptrPerso->getStat().AD * m_multiplier), getTextureRect().top == 0 ? m_knockback : -m_knockback);
+            reset();
         }
         else if (m_ptrPerso->getType() == typeid(PJ*))
         {
@@ -552,7 +557,6 @@ void DistAtt::update()
     else if (m_delay > 0)
     {
         reset();
-        m_ptrPerso->nextAtt();
     }
     m_delay -= 1;
 }

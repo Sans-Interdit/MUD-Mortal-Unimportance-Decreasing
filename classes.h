@@ -69,7 +69,7 @@ public:
     Attaque() = default;
     Attaque(Unit* joueur, std::string filepath, double delay, double multiplier, double knockback, double avTmp = 0);
     //void next();
-    void reset();
+    void virtual reset();
     double getDelay();
     double getDelayStatic();//const
     double getAvTmp();
@@ -79,7 +79,6 @@ public:
     const virtual type_info& getType() = 0;
 
 protected:
-    std::unordered_set<Unit*> m_lstHit;
     Unit* m_ptrPerso;
     double m_delay{ 0 };
     double m_delayStatic{ 0 };
@@ -93,7 +92,10 @@ class CacAtt : public Attaque
     using Attaque::Attaque;
 public:
     void update();
+    void reset();
     const type_info& getType();
+private:
+    std::unordered_set<Unit*> m_lstHit;
 };
 
 class DistAtt : public Attaque
@@ -120,7 +122,7 @@ protected:
 class PJ : public SolUnit
     /*
     les perso seraient :
-    gros qui tir de loin(charge : gros tir ? / spe : upercut qui leve / switch : caintlyn)
+    gros avec un tir de loin(charge : gros tir ? / spe : upercut qui leve / switch : caintlyn)
     bombardier qui zone(ziggs devant / explo qui repousse / tp en haut)
     rapide (enchainement att genre ww / dash ou parrade(att qui dash si touche) / un truc horizontal ptet devant derière)
     */
@@ -140,7 +142,7 @@ private:
     bool m_doubleSaut{ true };
     bool m_sbMaintenue{ false };
     bool m_attChain{ false };
-    double m_speTmp{ 10 };
+    double m_speTmp{ 0 };
     bool m_attHold{ false };
     sf::RectangleShape m_dmgRect {sf::Vector2f{1220, 720}};
 };
