@@ -133,9 +133,11 @@ public:
     void attack();
     void run();
     void saut();
-    void spe();
-    jointVar resetVar();
-    void recoverVar(jointVar vars);
+    void dash();
+    void uppercut();
+    void bomb();
+    JointVar resetVar();
+    void recoverVar(JointVar vars);
     int getHP();
     const type_info& getType();
 private:
@@ -143,6 +145,7 @@ private:
     bool m_sbMaintenue{ false };
     bool m_attChain{ false };
     double m_speTmp{ 0 };
+    void(PJ::*m_speType)();
     bool m_attHold{ false };
     sf::RectangleShape m_dmgRect {sf::Vector2f{1220, 720}};
 };

@@ -32,7 +32,7 @@ struct Stats
     std::vector<double> AS; // attack speed en fonction des attaques
 };
 
-struct jointVar
+struct JointVar
 {
     sf::Vector2f pos;
     double vecX;
@@ -40,4 +40,12 @@ struct jointVar
     double tmpSaut;
     bool aDroite;
 };
+
+enum SpeType
+{
+    dash,
+    uppercut,
+    bomb
+};
+
 #endif

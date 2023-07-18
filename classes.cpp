@@ -104,7 +104,7 @@ void SolUnit::physique()
         {
             if (!axePF)
             {
-                setPosition(m_avPos.x, getPosition().y);
+                 setPosition(m_avPos.x, getPosition().y);
             }
             else
             {
@@ -217,16 +217,19 @@ PJ::PJ(EntityLists* drawable, int p)
     case (1):
         setImg("Sprites/billy.png");
         m_stat = { 150, 20, 5, {0.5,0.3,0.3 } };
+        m_speType = &dash;
         m_attaque = { new CacAtt(this, "Sprites/attaque1.png", 0.20, 1, 3), new CacAtt(this, "Sprites/attaque1.png", 0.25, 1.2, 3), new CacAtt(this, "Sprites/attaque3.png", 0.30, 1.5, 10, 0.25) };
         break;
     case (2):
         setImg("Sprites/tanky.png");
         m_stat = { 200, 30, 4, {0.5,0.2} };
+        m_speType = &uppercut;
         m_attaque = { new CacAtt(this, "Sprites/attaque2.png", 0.20, 1, 3, 0.5), new DistAtt(this, "Sprites/carreau.png", 1, 1, 10, 0.5) };
         break;
     case (3):
         setImg("Sprites/slimy.png");
         m_stat = { 50, 5, 5, {0.3,0.3,0.3} };
+        m_speType = &bomb;
         m_attaque = { new CacAtt(this, "Sprites/attaque1.png", 0.25, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", 0.25, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", 0.25, 1.2, 5) };
         break;
     default:
@@ -336,20 +339,13 @@ void PJ::saut()
     }
 }
 
-void PJ::spe()
+void PJ::dash()
 {
     if (m_speTmp > -0.25 * 60)
     {
         if (m_speTmp > 0)
         {
-            if (m_aDroite)
-            {
-                move(17, 0);
-            }
-            else
-            {
-                move(-17, 0);
-            }
+            m_vecteurX = m_aDroite ? 17 : -17;
         }
         m_speTmp -= 1;
     }
@@ -360,10 +356,19 @@ void PJ::spe()
             m_speTmp = 0.15 * 60;
         }
     }
-    std::cout << m_speTmp << std::endl;
 }
 
-jointVar PJ::resetVar()
+void PJ::uppercut()
+{
+
+}
+
+void PJ::bomb()
+{
+
+}
+
+JointVar PJ::resetVar()
 {
     m_numAtt = 0;
     m_attAnimTmp = 0;
@@ -372,7 +377,7 @@ jointVar PJ::resetVar()
     return { getPosition(),m_vecteurX,m_vecteurY,m_tmpSaut,m_aDroite };
 }
 
-void PJ::recoverVar(jointVar vars)
+void PJ::recoverVar(JointVar vars)
 {
     setPosition(vars.pos);
     m_avPos = getPosition();
