@@ -41,11 +41,4 @@ struct JointVar
     bool aDroite;
 };
 
-enum SpeType
-{
-    dash,
-    uppercut,
-    bomb
-};
-
 #endif

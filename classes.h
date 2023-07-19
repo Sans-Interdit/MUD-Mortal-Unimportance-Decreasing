@@ -119,6 +119,11 @@ protected:
     double m_tmp{ 0 };
 };
 
+void dash(PJ* player, double&  tmp);
+void uppercut(PJ *player, double& tmp);
+void bomb(PJ* player, double& tmp);
+
+
 class PJ : public SolUnit
     /*
     les perso seraient :
@@ -133,23 +138,20 @@ public:
     void attack();
     void run();
     void saut();
-    void dash();
-    void uppercut();
-    void bomb();
     JointVar resetVar();
     void recoverVar(JointVar vars);
+    void setVecteurX(int x);
     int getHP();
     const type_info& getType();
 private:
     bool m_doubleSaut{ true };
     bool m_sbMaintenue{ false };
     bool m_attChain{ false };
-    double m_speTmp{ 0 };
-    void(PJ::*m_speType)();
+    double m_speTmp{ -1 };
+    void(*m_speType)(PJ*, double &);//destructeur ptet nécéssaire
     bool m_attHold{ false };
     sf::RectangleShape m_dmgRect {sf::Vector2f{1220, 720}};
 };
-
 //DIFFERENCIER AVEC DES POINTEUR (pas le meme emplacement memoire)
 
 #endif // !CLASSES_H

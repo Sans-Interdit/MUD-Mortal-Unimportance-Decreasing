@@ -235,6 +235,7 @@ PJ::PJ(EntityLists* drawable, int p)
     default:
         setImg("Sprites/billy.png");
         m_stat = { 5000, 5, 5, {0.2,0.2,0.7} };
+        m_speType = &bomb;
         m_attaque = { new CacAtt(this,  "Sprites/attaque1.png", 0.25, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", 0.25, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", 0.25, 1.2, 5) };
     }
     for (auto & e : m_stat.AS) {
@@ -339,35 +340,6 @@ void PJ::saut()
     }
 }
 
-void PJ::dash()
-{
-    if (m_speTmp > -0.25 * 60)
-    {
-        if (m_speTmp > 0)
-        {
-            m_vecteurX = m_aDroite ? 17 : -17;
-        }
-        m_speTmp -= 1;
-    }
-    else 
-    {
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
-        {
-            m_speTmp = 0.15 * 60;
-        }
-    }
-}
-
-void PJ::uppercut()
-{
-
-}
-
-void PJ::bomb()
-{
-
-}
-
 JointVar PJ::resetVar()
 {
     m_numAtt = 0;
@@ -391,7 +363,6 @@ void PJ::recoverVar(JointVar vars)
 
 void PJ::update()
 {
-
     setTextureRect(sf::IntRect(m_imgCoord.x * 40, int(!m_aDroite) * 120, 40, 120));
     if (!m_auSol && !m_sbMaintenue && -0.0045 * (m_tmpSaut * m_tmpSaut) + m_vecteurY > 0 && m_doubleSaut)
     {
@@ -404,7 +375,7 @@ void PJ::update()
     bool const casting{ m_speTmp>0 || m_attAnimTmp > 0 || (m_attaque[m_numAtt]->getDelay() > 0 && m_attaque[m_numAtt]->getType() == typeid(CacAtt*)) };
     if (m_hitFrames <= 0)//casting avant attack pour pas changer direction a la fin du cast
     {
-        spe();//-------------------------------bug quand dans mur-----------------------------
+        m_speType(this, m_speTmp);
         attack();
     }
     if (!casting)
@@ -428,6 +399,40 @@ void PJ::update()
 const type_info& PJ::getType() { return typeid(this); }
 
 int PJ::getHP() { return m_hp; }
+
+void PJ::setVecteurX(int x) { m_vecteurX = x; }
+
+void dash(PJ* player, double & tmp)
+{
+    std::cout << tmp << std::endl;
+    if (tmp > -0.25 * 60)
+    {
+        if (tmp > 0)
+        {
+            player->setVecteurX(player->getADroite() ? 17 : -17);
+        }
+        tmp -= 1;
+    }
+    else
+    {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
+        {
+            tmp = 0.15 * 60;
+        }
+    }
+}
+
+void uppercut(PJ* player, double& tmp)
+{
+
+}
+
+void bomb(PJ* player,double& tmp)
+{
+
+}
+
+
 
 Attaque::Attaque(Unit* joueur, std::string filepath, double delay, double multiplier, double knockback, double avTmp) : m_delayStatic(delay*60), m_multiplier(multiplier), m_avTmp(avTmp*60), m_ptrPerso(joueur), m_knockback(knockback), m_delay(0)
 {
