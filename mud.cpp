@@ -57,7 +57,7 @@ int main()
     int persoIndex = 0;
     std::array<PJ, 3> persos{PJ(& drawable, 1), PJ(&drawable, 2), PJ(&drawable, 3)};
     drawable.perso = &persos[persoIndex];
-    //Ennemie mechant(&drawable, 850, 650);
+    Ennemie mechant(&drawable, 850, 650);
 
     while (window.isOpen())
     {
@@ -98,7 +98,7 @@ int main()
         for (Attaque* att : *drawable.ptrAtt)
         {
             size_t t = drawable.ptrAtt->size();
-            att->update();
+            att->Attaque::update();
             if (drawable.ptrAtt->size() != t)
             {
                 break;

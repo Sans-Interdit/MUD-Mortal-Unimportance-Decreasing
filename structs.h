@@ -2,8 +2,9 @@
 #define ENTITYLISTS_H
 
 #include <SFML/Graphics.hpp>
-#include<unordered_set>
-#include<vector>
+#include <unordered_set>
+#include <vector>
+#include <array>
 #include <iostream>
 #include <string>
 #include <typeinfo>
@@ -26,9 +27,9 @@ struct EntityLists
 
 struct Stats
 {
-    int maxHP;
-    int AD;
-    double vit;
+    int maxHP{ 0 };
+    int AD{ 0 };
+    double vit{ 0 };
     std::vector<double> AS; // attack speed en fonction des attaques
 };
 
@@ -39,6 +40,13 @@ struct JointVar
     double vecY;
     double tmpSaut;
     bool aDroite;
+};
+
+struct frameAtt
+{
+    frameAtt(float b, float a);
+    int before;
+    int after;
 };
 
 #endif

@@ -32,27 +32,30 @@ public:
 class Unit : public Entite
 {
 public:
+    void hit(int const dmg, double push, double kbY);
+    void attTrigger(Attaque* att, int& tmp, bool condition);
+    void nextAtt();
     EntityLists* getPtrGroup();
     bool getADroite();//const
     void setADroite(bool d);
     Stats getStat();
     int getNumAtt();
-    void nextAtt();
-    void hit(int const dmg, double push, double kbY);
+    frameAtt getTime();
     virtual const type_info& getType();//probablement améliorable
 protected:
     int m_hp{ 0 };
+    void attack(Attaque* att, int& tmp);
     std::vector<Attaque*> m_attaque;
     int m_hitFrames{ 0 };
     sf::Vector2f m_avPos = getPosition();
     bool m_aDroite{ true };
-    double m_attAnimTmp{ 0 };
+    int m_attTmp{ 0 };
     EntityLists* m_ptrGroup{ nullptr };
-    Stats m_stat;
+    Stats m_stat{ 0, 0, 0, {0} };
     int m_numAtt{ 0 };
     double m_vecteurX{ 0 };
     double m_vecteurY{ 0 };
-    double m_cooldown{ 0 };
+    frameAtt m_timeAtt{ -1, -1 };
 };
 
 class SolUnit : public Unit
@@ -67,24 +70,24 @@ class Attaque : public Entite
 {
 public:
     Attaque() = default;
-    Attaque(Unit* joueur, std::string filepath, double delay, double multiplier, double knockback, double avTmp = 0);
+    Attaque(Unit* joueur, std::string filepath, frameAtt time, double duration,double multiplier, double knockback);
     //void next();
     void virtual reset();
     double getDelay();
-    double getDelayStatic();//const
-    double getAvTmp();
-    void setDelay(double val);
+    frameAtt getTime();
+    //void setDelay(int val);
+    void setKB(std::array<double, 2> kb);
     void virtual spawn();
-    void virtual update() = 0;
-    const virtual type_info& getType() = 0;
+    void virtual update();
+    const virtual type_info& getType();
 
 protected:
-    Unit* m_ptrPerso;
-    double m_delay{ 0 };
-    double m_delayStatic{ 0 };
-    double m_multiplier{ 1 };
-    double m_knockback{ 0 };
-    double m_avTmp{ 0 };
+    Unit* m_ptrPerso{ nullptr };
+    int m_delay{ 0 };
+    int m_duration;
+    frameAtt m_time;
+    double m_multiplier;
+    std::array<double, 2> m_kb{ 0, 0 };
 };
 
 class CacAtt : public Attaque
@@ -92,6 +95,7 @@ class CacAtt : public Attaque
     using Attaque::Attaque;
 public:
     void update();
+    void spawn();
     void reset();
     const type_info& getType();
 private:
@@ -112,17 +116,17 @@ class Ennemie : public SolUnit
 public:
     Ennemie(EntityLists* drawable, float x, float y);
     void update();
-    void attack();
     void run();
     const type_info& getType();
 protected:
     double m_tmp{ 0 };
 };
 
-void dash(PJ* player, double&  tmp);
-void uppercut(PJ *player, double& tmp);
-void bomb(PJ* player, double& tmp);
 
+//fontion pour PJ::m_speType ---------> faudra l'améliorer
+void dash(PJ* player, int&  tmp);
+void shoryuken(PJ *player, int& tmp);
+void bomb(PJ* player, int& tmp);
 
 class PJ : public SolUnit
     /*
@@ -135,20 +139,22 @@ class PJ : public SolUnit
 public:
     PJ(EntityLists* drawable, int p);
     void update();
-    void attack();
     void run();
     void saut();
     JointVar resetVar();
     void recoverVar(JointVar vars);
     void setVecteurX(int x);
+    CacAtt* getSpeAtt();
     int getHP();
     const type_info& getType();
 private:
+    double m_rAttDelay{ 0 };
     bool m_doubleSaut{ true };
     bool m_sbMaintenue{ false };
     bool m_attChain{ false };
-    double m_speTmp{ -1 };
-    void(*m_speType)(PJ*, double &);//destructeur ptet nécéssaire
+    int m_speTmp{ -21 };
+    CacAtt* m_speAtt;
+    void(*m_speType)(PJ*, int &);//destructeur ptet nécéssaire / surement améliorable
     bool m_attHold{ false };
     sf::RectangleShape m_dmgRect {sf::Vector2f{1220, 720}};
 };
