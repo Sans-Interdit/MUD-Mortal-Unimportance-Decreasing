@@ -55,8 +55,8 @@ int main()
     }
 
     int persoIndex = 0;
-    std::array<PJ, 3> persos{PJ(& drawable, 1), PJ(&drawable, 2), PJ(&drawable, 3)};
-    drawable.perso = &persos[persoIndex];
+    std::array<PJ*, 3> persos{new P1(&drawable), new P2(&drawable), new P3(&drawable)};
+    drawable.perso = persos[persoIndex];
     Ennemie mechant(&drawable, 850, 650);
 
     while (window.isOpen())
@@ -79,7 +79,7 @@ int main()
                     JointVar vars = drawable.perso->resetVar();
                     ++persoIndex;
                     if (persoIndex == 3) { persoIndex = 0; }
-                    drawable.perso = &persos[persoIndex];
+                    drawable.perso = persos[persoIndex];
                     drawable.perso->recoverVar(vars);
                 }
             }

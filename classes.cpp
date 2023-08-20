@@ -36,48 +36,47 @@ Plateforme::Plateforme(float const x, float const y, std::string type)
 	setHitbox();
 }
 
-void Unit::hit(int const dmg, double push, double kbY = 0)
+void Unit::hit(int const dmg, float push, float kbY = 0)
 {
 	m_hp -= dmg;
 	m_vecteurX = push;
-	if (kbY == 0) { m_vecteurY = kbY; }
-	m_hitFrames = static_cast<int>(abs(push) > abs(kbY) ? abs(push) : abs(kbY) * 2);
-	m_ptrGroup->ptrAtt->erase(m_attaque[m_numAtt]);
-	//m_attaque[m_numAtt]->setDelay(0);
+	if (kbY != 0) { m_vecteurY = kbY; }
+	m_hitFrames = static_cast<int>(abs(push) > abs(kbY) ? abs(push)*2 : abs(kbY));
+	//m_attaques[m_numAtt]->setDelay(0);
 	m_attTmp = 0;
 }
 
-void Unit::attTrigger(Attaque* att, int& tmp, bool condition)
+void Unit::attTrigger(Attaque* att, bool condition)
 {
-	if (m_imgCoord.x != 0) { m_imgCoord.x = 0; }
-	if (tmp < 0)//semble fonctionner plus de test pour etre sur
+	if (condition && m_attTmp < 0)
 	{
-		if (condition)
-		{
-			//std::cout<<m_attaque[m_numAtt]->getDelay()<<std::endl;
-			m_timeAtt = att->getTime();
-			tmp = m_timeAtt.before + m_timeAtt.after;
-			//m_attChain = false;
-			//m_attHold = true;
-		}
-	}
-	else
-	{
-		attack(att, tmp);
+		//std::cout<<m_attaques[m_numAtt]->getDelay()<<std::endl;
+		m_timeAtt = att->getTime();
+		m_attTmp = m_timeAtt.before + m_timeAtt.after;
+		m_attChosen = att;
+		//m_attChain = false;
+		//m_attHold = true;
 	}
 }
 
-void Unit::attack(Attaque* att, int& tmp)
+void Unit::attack()
 {
-	if (tmp == m_timeAtt.after)
+	if (m_attTmp >= 0)
 	{
-		att->spawn();
+		if (m_attTmp == m_timeAtt.after)
+		{
+			m_attChosen->spawn();
+		}
+		else if (m_attTmp > m_timeAtt.after)
+		{
+			if (m_imgCoord.x != 1) { m_imgCoord.x = 1; }
+		}
+		else
+		{
+			if (m_imgCoord.x != 0) { m_imgCoord.x = 0; }
+		}
+		m_attTmp -= 1;
 	}
-	else if (tmp > m_timeAtt.after)
-	{
-		if (m_imgCoord.x != 1) { m_imgCoord.x = 1; }
-	}
-	tmp -= 1;
 }
 
 EntityLists* Unit::getPtrGroup() { return m_ptrGroup; }
@@ -90,23 +89,13 @@ void Unit::setADroite(bool d) { m_aDroite = d; }
 
 Stats Unit::getStat() { return m_stat; }
 
-int Unit::getNumAtt() { return m_numAtt; }
-
-const type_info& Unit::getType() { return typeid(this); }
-
-void Unit::nextAtt()
-{
-	m_numAtt = m_stat.AS.size() - 1 > m_numAtt ? m_numAtt + 1 : 0;
-}
-
 void SolUnit::physique()
 {
 	m_avPos = getPosition();
 
-	double posY{ -0.0045 * (m_tmpSaut * m_tmpSaut) + m_vecteurY };
+	float posY{ (float)(-0.0045 * (m_tmpSaut * m_tmpSaut) + m_vecteurY) };
 	move(static_cast<float>(m_vecteurX), static_cast<float>(-posY));
 	m_tmpSaut += 1;
-
 	if (m_vecteurX > 0)
 	{
 		m_vecteurX -= 0.5;
@@ -115,7 +104,6 @@ void SolUnit::physique()
 	{
 		m_vecteurX += 0.5;
 	}
-
 	setHitbox();
 
 	sf::FloatRect zonePied(m_hitbox.left, m_hitbox.top + m_hitbox.height - 5, m_hitbox.width, 5);
@@ -126,10 +114,11 @@ void SolUnit::physique()
 		bool axePF{ m_avPos.x + m_hitbox.width > plateforme->getPosition().x && m_avPos.x < plateforme->getPosition().x + hitboxPF.width };
 		if (hitboxPF.intersects(zonePied) && (axePF || (abs(plateforme->getPosition().y - (getPosition().y + m_hitbox.height)) <= 10) && m_auSol))
 		{
-			while (hitboxPF.top < getPosition().y + m_hitbox.height - 5)
+			/*while (hitboxPF.top < getPosition().y + m_hitbox.height - 5)
 			{
 				move(0, -abs(diffPos.y / 5));
-			}
+			}*/
+			setPosition(getPosition().x, hitboxPF.top - m_hitbox.height + 5);
 			m_auSol = true;
 			m_tmpSaut = 0;
 			m_vecteurY = -3;
@@ -146,6 +135,10 @@ void SolUnit::physique()
 				m_vecteurY = 0;
 			}
 		}
+		if (!m_auSol && getType()==typeid(Ennemie*))
+		{
+			//std::cout << zonePied.top << ' ' << zonePied.left << " "  << m_avPos.x  << ' '<< hitboxPF.left+hitboxPF.width<< std::endl;
+		}
 	}
 	if (m_tmpSaut > 0)
 	{
@@ -160,35 +153,32 @@ Ennemie::Ennemie(EntityLists* drawable, float x, float y)
 	m_ptrGroup = drawable;
 	m_ptrGroup->ptrEnn->insert(this);
 	m_hp = 500;
-	m_stat = { 150, 20, 5, std::vector<double>{ 2 } };
-	m_attaque = { new CacAtt(this, "Sprites/Attaque1.png", {0.1,0.3}, 0.3, 1.0, 10) };
-	for (auto& e : m_stat.AS) {
-		e *= 60;
-	}
+	m_stat = { 150, 20, 5 };
+	m_attaques = { new CacAtt(this, "Sprites/Attaque1.png", {0.1,0.3}, 0.3, 1.0, 10) };
 }
 
 /*
 void Ennemie::attTrigger()
 {
-	if (m_attaque[m_numAtt]->getDelay() <= 0)
+	if (m_attaques[m_numAtt]->getDelay() <= 0)
 	{
-		//m_attaque[m_numAtt]->setHitbox();
-		sf::FloatRect HB {m_attaque[m_numAtt]->getHitbox()};
+		//m_attaques[m_numAtt]->setHitbox();
+		sf::FloatRect HB {m_attaques[m_numAtt]->getHitbox()};
 		sf::FloatRect zoneAtt = m_aDroite ? sf::FloatRect{getPosition().x, getPosition().y + m_hitbox.height - HB.height, HB.width, HB.height} : sf::FloatRect{ getPosition().x - HB.width + m_hitbox.width, getPosition().y + m_hitbox.height - HB.height,HB.width, HB.height };
 		if (m_rAttDelay >= m_stat.AS[m_numAtt])
 		{
 			if (zoneAtt.intersects(m_ptrGroup->perso->getHitbox()))
 			{
-				m_timeAtt = m_attaque[m_numAtt]->getTime();
+				m_timeAtt = m_attaques[m_numAtt]->getTime();
 				m_attTmp = m_timeAtt.before + m_timeAtt.after;
-				//m_attTmp = m_attaque[m_numAtt]->getTime().before;
-				//m_attaque[m_numAtt]->setDelay(m_attaque[m_numAtt]->getDelayStatic());
+				//m_attTmp = m_attaques[m_numAtt]->getTime().before;
+				//m_attaques[m_numAtt]->setDelay(m_attaques[m_numAtt]->getDelayStatic());
 			}
 		}
 	}
 	if (m_attTmp == m_timeAtt.after)
 	{
-		m_attaque[m_numAtt]->spawn();
+		m_attaques[m_numAtt]->spawn();
 	}
 	else if (m_attTmp == 0)
 	{
@@ -218,33 +208,41 @@ void Ennemie::update()
 {
 	if (m_hp <= 0)
 	{
-		m_ptrGroup->ptrAtt->erase(m_attaque[m_numAtt]);
+		m_ptrGroup->ptrAtt->erase(m_attaques[m_numAtt]);
 		m_ptrGroup->ptrEnn->erase(this);
 	}
-	//m_attaque[m_numAtt]->setHitbox();
+	//m_attaques[m_numAtt]->setHitbox();
 	/*if (m_hitFrames <= 0)
 	{
-		sf::FloatRect HBAtt {m_attaque[m_numAtt]->getHitbox()};
+		sf::FloatRect HBAtt {m_attaques[m_numAtt]->getHitbox()};
 		sf::FloatRect zoneAtt = m_aDroite ? sf::FloatRect{getPosition().x, getPosition().y + m_hitbox.height - HBAtt.height, HBAtt.width, HBAtt.height} : sf::FloatRect{ getPosition().x - HBAtt.width + m_hitbox.width, getPosition().y + m_hitbox.height - HBAtt.height,HBAtt.width, HBAtt.height };
 		bool conditionAtt{ zoneAtt.intersects(m_ptrGroup->perso->getHitbox()) };
-		attTrigger(m_attaque[m_numAtt], m_attTmp, conditionAtt);
+		attTrigger(m_attaques[m_numAtt], m_attTmp, conditionAtt);
 	}*/
 	bool const slashing{ m_attTmp > 0 };
 	if (!slashing)
 	{
 		if (m_hitFrames <= 0)
 		{
-			run();
+			if (m_auSol)
+			{
+				run();
+			}
+			else
+			{
+				m_vecteurX = -m_vecteurX;//soluce de la flemme
+			}
 		}
 		else
 		{
-			m_ptrGroup->ptrAtt->erase(m_attaque[m_numAtt]);
+			m_ptrGroup->ptrAtt->erase(m_attaques[m_numAtt]);
 			m_hitFrames -= 1;
 		}
 	}
 	physique();
+	std::cout << m_auSol << ' ' << m_avPos.y << ' '<< getPosition().y  << std::endl;
 	//bug restant : tombe si se retourne et attaque en meme tmp + se retourne si attaque après être attaqué
-	if ((!m_auSol || (m_avPos.x == getPosition().x && !slashing)) && m_hitFrames <= 0 && m_tmpSaut <= 1)
+	if ((!m_auSol || (m_avPos == getPosition() && !slashing)) && m_hitFrames <= 0 && m_tmpSaut <= 1)// tombe la 2 eme fois au bord
 	{
 		setPosition(m_avPos);
 		m_aDroite = !m_aDroite;
@@ -255,39 +253,8 @@ const type_info& Ennemie::getType() { return typeid(this); }
 
 //------------------------------------------------------------PJ------------------------------------------------------------
 
-PJ::PJ(EntityLists* drawable, int p)
+PJ::PJ(EntityLists* drawable)
 {
-	switch (p)
-	{
-	case (1):
-		setImg("Sprites/billy.png");
-		m_stat = { 150, 20, 5, {0.5,0.3,0.3 } };
-		m_speType = &dash;
-		m_attaque = { new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.2, 1, 3), new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.2, 1.2, 3), new CacAtt(this, "Sprites/attaque3.png", {0.3,0.55}, 0.3, 2, 10) };
-		break;
-	case (2):
-		setImg("Sprites/tanky.png");
-		m_stat = { 200, 30, 4, {0.5,0.2} };
-		m_speType = &shoryuken;
-		m_speAtt = new CacAtt(this, "Sprites/uppercut.png", { 0.1,0.3 }, 0.3, 1, 3);
-		m_speAtt->setKB({ 2,12 });
-		m_attaque = { new CacAtt(this, "Sprites/attaque2.png", {0.15,0.25}, 0.25, 1.5, 7), new DistAtt(this, "Sprites/carreau.png", {0.25,0.5}, 2, 1, 5) };
-		break;
-	case (3):
-		setImg("Sprites/slimy.png");
-		m_stat = { 50, 5, 5, {0.3,0.3,0.3} };
-		m_speType = &bomb;
-		m_attaque = { new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.3, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.3, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.3, 1.2, 5) };
-		break;
-	default:
-		setImg("Sprites/billy.png");
-		m_stat = { 5000, 5, 5, {0.2,0.7} };
-		m_speType = &bomb;
-		m_attaque = { new CacAtt(this,  "Sprites/attaque1.png", {0.1,0.3}, 0.3, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.3, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.3, 1.2, 5) };
-	}
-	for (auto& e : m_stat.AS) {
-		e *= 60;
-	}
 	setPosition(sf::Vector2f(250, 250));
 	m_hp = m_stat.maxHP;
 	m_ptrGroup = drawable;
@@ -296,45 +263,6 @@ PJ::PJ(EntityLists* drawable, int p)
 	m_dmgRect.setOutlineThickness(15);
 	m_dmgRect.setPosition(15, 15);
 }
-
-/*
-void PJ::attTrigger()
-{
-	
-	if (m_imgCoord.x != 0) { m_imgCoord.x = 0; }
-	if (m_attTmp < 0)//semble fonctionner plus de test pour etre sur
-	{
-		if (m_attTmp == -0.3 * 60)
-		{
-			m_numAtt = 0;
-		}
-		if ((sf::Keyboard::isKeyPressed(sf::Keyboard::L) && !m_attHold) || m_attChain)
-		{
-			//std::cout<<m_attaque[m_numAtt]->getDelay()<<std::endl;
-			m_timeAtt = m_attaque[m_numAtt]->getTime();
-			m_attTmp = m_timeAtt.before + m_timeAtt.after;
-			m_attChain = false;
-			m_attHold = true;
-		}
-	}
-	else
-	{
-		attack(m_attaque[m_numAtt], m_attTmp);
-	}
-	if (m_attTmp == 0 && !std::any_of(m_ptrGroup->ptrAtt->begin(), m_ptrGroup->ptrAtt->end(), [this](Attaque* att) -> bool {return att == m_attaque[m_numAtt]; }))
-	{
-		m_vecteurY = (-0.0045 * (m_tmpSaut * m_tmpSaut) + m_vecteurY > 0) ? 1 : -1;
-		m_tmpSaut = 0;
-		m_attaque[m_numAtt]->spawn();
-		m_attTmp -= 1;
-	}
-
-	else if (m_attTmp > 0)
-	{
-		m_attTmp -= 1;
-	}
-}
-*/
 
 void PJ::run()
 {
@@ -380,8 +308,9 @@ JointVar PJ::resetVar()
 {
 	m_numAtt = 0;
 	m_attTmp = 0;
+	//m_speAtt = 0;
 	m_attChain = 0;
-	m_attaque[m_numAtt]->reset();
+	m_attaques[m_numAtt]->reset();
 	return { getPosition(),m_vecteurX,m_vecteurY,m_tmpSaut,m_aDroite };
 }
 
@@ -400,6 +329,10 @@ void PJ::recoverVar(JointVar vars)
 void PJ::update()
 {
 	setTextureRect(sf::IntRect(m_imgCoord.x * 40, int(!m_aDroite) * 120, 40, 120));
+	if (m_attTmp == 0)
+	{
+		nextAtt();
+	}
 	if (!m_auSol && !m_sbMaintenue && -0.0045 * (m_tmpSaut * m_tmpSaut) + m_vecteurY > 0 && m_doubleSaut)
 	{
 		m_vecteurY -= 1;
@@ -408,14 +341,14 @@ void PJ::update()
 	{
 		m_doubleSaut = true;
 	}
-	if (m_attTmp > 0 && !m_attHold && m_numAtt != m_attaque.size() - 1 && sf::Keyboard::isKeyPressed(sf::Keyboard::L))
+	if (m_attTmp >= 0 && !m_attHold && m_numAtt != m_attaques.size() - 1 && sf::Keyboard::isKeyPressed(sf::Keyboard::L))
 	{
 		m_attChain = true;
 	}
-	bool const casting{ m_speTmp > 0 || m_attTmp > 0 };
+	bool const casting{ m_speTmp > 0 || m_attTmp >= 0 };
 	if (m_hitFrames <= 0)//casting avant attack pour pas changer direction a la fin du cast
 	{
-		m_speType(this, m_speTmp);
+		//m_speType(this, m_speTmp);
 		bool conditionAtt{ (sf::Keyboard::isKeyPressed(sf::Keyboard::L) && !m_attHold) || m_attChain };
 		if (m_attTmp < 0)
 		{
@@ -436,7 +369,7 @@ void PJ::update()
 				m_rAttDelay += 1;
 			}
 		}
-		attTrigger(m_attaque[m_numAtt], m_attTmp, conditionAtt);
+		attTrigger(m_attaques[m_numAtt], conditionAtt);
 	}
 	if (!casting)
 	{
@@ -449,7 +382,7 @@ void PJ::update()
 		else
 		{
 			m_ptrGroup->hud->insert(&m_dmgRect);
-			m_ptrGroup->ptrAtt->erase(m_attaque[m_numAtt]);
+			m_ptrGroup->ptrAtt->erase(m_attaques[m_numAtt]);
 			m_hitFrames -= 1;
 		}
 	}
@@ -461,8 +394,85 @@ void PJ::update()
 	{
 		m_attHold = true;
 	}
+	attack();
+	special();
 	physique();
 }
+
+void PJ::nextAtt()
+{
+	m_numAtt = m_attaques.size() - 1 > m_numAtt ? m_numAtt + 1 : 0;
+}
+
+
+P1::P1(EntityLists* drawable) : PJ(drawable)
+{
+	setImg("Sprites/billy.png");
+	m_stat = { 150, 20, 5 };
+	//m_speType = &dash;
+	m_attaques = { new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.2, 1, 4), new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.2, 1, 4), new CacAtt(this, "Sprites/attaque3.png", {0.3,0.55}, 0.3, 2, 10) };
+}
+
+void P1::special()
+{
+	if (m_speTmp > -0.35 * 60)
+	{
+		if (m_speTmp > 0)
+		{
+			setVecteurX(getADroite() ? 18 : -18);
+		}
+		else if (m_speTmp == 0)
+		{
+			setVecteurX(0);
+		}
+		m_speTmp -= 1;
+	}
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
+	{
+		m_speTmp = static_cast<int>(0.18 * 60);
+	}
+}
+
+
+P2::P2(EntityLists* drawable) : PJ(drawable)
+{
+	setImg("Sprites/tanky.png");
+	m_stat = { 200, 30, 4 };
+	//m_speType = &shoryuken;
+	m_speAtt = new CacAtt(this, "Sprites/uppercut.png", { 0.3,0.3 }, 0.25, 1, 3);
+	m_speAtt->setKB({ 0, 10 });
+	m_attaques = { new CacAtt(this, "Sprites/attaque2.png", {0.15,0.25}, 0.25, 1.5, 7), new DistAtt(this, "Sprites/carreau.png", {0.25,0.5}, 2, 1, 5) };
+}
+
+void P2::special()// 12 - 89  10 - 82   8 - 73
+{
+	attTrigger(m_speAtt, sf::Keyboard::isKeyPressed(sf::Keyboard::M) && m_speTmp < -0.5 * 60);
+	if (m_attTmp == m_timeAtt.before + m_timeAtt.after && sf::Keyboard::isKeyPressed(sf::Keyboard::M))
+	{
+		setVecteurX(m_aDroite ? 10 : -10);
+		m_speTmp = 0;
+	}
+	if (m_attTmp < 0 && m_speTmp >= -0.5 * 60)
+	{
+		m_speTmp -= 1;
+	}
+}
+
+
+
+P3::P3(EntityLists* drawable) : PJ(drawable)
+{
+	setImg("Sprites/slimy.png");
+	m_stat = { 50, 5, 5 };
+	//m_speType = &bomb;
+	m_attaques = { new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.3, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.3, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.3, 1.2, 5) };
+}
+
+void P3::special()
+{
+
+}
+
 
 const type_info& PJ::getType() { return typeid(this); }
 
@@ -470,8 +480,8 @@ int PJ::getHP() { return m_hp; }
 
 void PJ::setVecteurX(int x) { m_vecteurX = x; }
 
-CacAtt* PJ::getSpeAtt() { return m_speAtt; }
 
+/*
 void dash(PJ* player, int& tmp)
 {
 	if (tmp > -0.35 * 60)
@@ -488,33 +498,35 @@ void dash(PJ* player, int& tmp)
 	}
 	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
 	{
-		tmp = 0.18 * 60;
+		tmp = (int)(0.18 * 60);
 	}
 }
 
 void shoryuken(PJ* player, int& tmp)
 {
-	if (tmp < 0)
+	if (tmp >= player->getTime().after)
 	{
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
-		{
-		}
+		player->setVecteurX(player->getADroite() ? 6 : -6);
 	}
-	else
+	else if (tmp < 0.2 * 60)
 	{
-		std::cout << tmp << std::endl;
-		player->setVecteurX(player->getADroite() ? 4 : -4);
+
 	}
-	player->attTrigger(player->getSpeAtt(), tmp, sf::Keyboard::isKeyPressed(sf::Keyboard::M));
+	else if (tmp < 0)
+	{
+		tmp -= 1;
+	}
+	player->attTrigger(player->getSpeAtt(), sf::Keyboard::isKeyPressed(sf::Keyboard::M));
 }
 
 void bomb(PJ* player, int& tmp)
 {
 
 }
+*/
 
 
-Attaque::Attaque(Unit* joueur, std::string filepath, frameAtt time, double duration, double multiplier, double knockback) : m_time(time), m_duration(duration * 60), m_multiplier(multiplier), m_ptrPerso(joueur)
+Attaque::Attaque(Unit* joueur, std::string filepath, frameAtt time, float duration, float multiplier, float knockback) : m_time(time), m_duration(duration * 60), m_multiplier(multiplier), m_ptrPerso(joueur)
 {
 	setImg(filepath);
 	setHitbox();
@@ -548,13 +560,13 @@ void Attaque::update()// |       | after <-- |   | during <-- | | before
 	m_delay -= 1;
 }
 
-double Attaque::getDelay() { return m_delay; }
+float Attaque::getDelay() { return m_delay; }
 
 frameAtt Attaque::getTime() { return m_time; }
 
 //void Attaque::startDelay() { m_delay = m_delayStatic; }
 
-void Attaque::setKB(std::array<double, 2> kb) { m_kb = kb; }
+void Attaque::setKB(std::array<float, 2> kb) { m_kb = kb; }
 
 const type_info& Attaque::getType() { return typeid(this); }
 
@@ -567,7 +579,6 @@ void CacAtt::spawn()
 void CacAtt::reset()
 {
 	Attaque::reset();
-	m_ptrPerso->nextAtt();
 	m_lstHit.clear();
 }
 
@@ -619,7 +630,6 @@ void DistAtt::spawn()
 	{
 		setPosition(m_ptrPerso->getPosition().x - m_hitbox.width + m_ptrPerso->getHitbox().width, m_ptrPerso->getPosition().y + 27);
 	}
-	m_ptrPerso->nextAtt();
 	Attaque::spawn();
 	m_delay = 2 * 60;
 }
@@ -660,6 +670,6 @@ const type_info& DistAtt::getType() { return typeid(this); }
 
 frameAtt::frameAtt(float b, float a)
 {
-	before = b * 60;
-	after = a * 60;
+	before = static_cast<int>(b * 60);
+	after = static_cast<int>(a * 60);
 }

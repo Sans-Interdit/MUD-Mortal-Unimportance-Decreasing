@@ -30,7 +30,6 @@ struct Stats
     int maxHP{ 0 };
     int AD{ 0 };
     double vit{ 0 };
-    std::vector<double> AS; // attack speed en fonction des attaques
 };
 
 struct JointVar
