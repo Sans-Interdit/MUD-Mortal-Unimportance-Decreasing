@@ -3,7 +3,7 @@ MUD est un jeu vidéo en cours de réalisation réalisé en C++ sans moteur de j
 Il s'agit d'un action-RPG en 2D s'inspirant d'Eiyuden chronicle rising
 
 Controles :
-Q -> Gauche
+Q -> Gauche\n
 D -> Droite
 Saut -> Espace
 L -> Attaque de base
