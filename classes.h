@@ -29,11 +29,12 @@ public:
     Plateforme(float const x, float const y, std::string type = "sol");
 };
 
-class Unit : public Entite//class de gestion qui herite pas de sprite pour desengorger?
+// class de gestion qui herite pas de sprite pour desengorger ?
+class Unit : public Entite
 {
 public:
-    void hit(int const dmg, float push, float kbY);
     void attTrigger(Attaque* att, bool condition);
+    virtual void hit(int const dmg, float const push, float const kbY) =0;
     EntityLists* getPtrGroup();
     bool getADroite();//const
     void setADroite(bool d);
@@ -41,13 +42,13 @@ public:
     frameAtt getTime();
     virtual const type_info& getType() = 0;//probablement améliorable
 protected:
+    void attack();
     int m_hp{ 0 };
     int m_hitFrames{ 0 };
-    void attack();
     Attaque* m_attChosen { nullptr };
-    sf::Vector2f m_avPos = getPosition();
+    sf::Vector2f m_avPos{ getPosition() };
     bool m_aDroite{ true };
-    int m_attTmp{ 0 };
+    int m_attTmp{ -1 };
     EntityLists* m_ptrGroup{ nullptr };
     Stats m_stat{ 0, 0, 0 };
     float m_vecteurX{ 0 };
@@ -57,6 +58,8 @@ protected:
 
 class SolUnit : public Unit
 {
+public:
+    virtual void hit(int const dmg, float const push, float const kbY);
 protected:
     void physique();
     bool m_auSol{ false };
@@ -121,13 +124,6 @@ protected:
     std::vector<Attaque*> m_attaques;
 };
 
-
-/*
-void dash(PJ* player, int&  tmp);
-void shoryuken(PJ *player, int& tmp);
-void bomb(PJ* player, int& tmp);
-*/
-
 class PJ : public SolUnit // rendu abstraite de façon tres/trop simple - faire attention
     /*
     les perso seraient :
@@ -154,8 +150,8 @@ protected:
     bool m_sbMaintenue{ false };
     bool m_attChain{ false };
     unsigned int m_numAtt{ 0 };
-    int m_speTmp{ -21 };
     std::vector<Attaque*> m_attaques;
+    int m_speTmp{ -30 };
     static const auto m_speVal{ 0 };
     virtual void special() = 0;
     //void(*m_speType)(PJ*, int &);//destructeur ptet nécéssaire / surement améliorable
