@@ -289,7 +289,7 @@ void PJ::recoverVar(JointVar vars)
 	m_auSol = false;
 }
 
-void PJ::update()//--------------------------------------REGLER ANIMATION------------------------------------------------
+void PJ::update()
 {
 	setTextureRect(sf::IntRect(m_imgCoord.x * 40, int(!m_aDroite) * 120, 40, 120));
 	if (m_attTmp == 0 && m_attaques[m_numAtt]==m_attChosen)
@@ -308,7 +308,6 @@ void PJ::update()//--------------------------------------REGLER ANIMATION-------
 	{
 		m_attChain = true;
 	}
-	bool const casting{ m_speTmp > 0 || m_attTmp >= 0 };
 	if (m_hitFrames <= 0)//casting avant attack pour pas changer direction a la fin du cast
 	{
 		//m_speType(this, m_speTmp);
@@ -334,6 +333,7 @@ void PJ::update()//--------------------------------------REGLER ANIMATION-------
 		}
 		attTrigger(m_attaques[m_numAtt], conditionAtt);
 	}
+	bool const casting{ m_speTmp > 0 || m_attTmp >= 0 };
 	if (!casting)
 	{
 		saut();
@@ -427,7 +427,7 @@ P3::P3(EntityLists* drawable) : PJ(drawable)
 	setImg("Sprites/slimy.png");
 	m_stat = { 50, 5, 5 };
 	//m_speType = &bomb;
-	m_attaques = { new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.3, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.3, 1.2, 5), new CacAtt(this, "Sprites/attaque1.png", {0.1,0.3}, 0.3, 1.2, 5) };
+	m_attaques = { new DistAtt(this, "Sprites/slimeBall.png", {0.1,0.3}, 0.3, 1.2, 5) };
 }
 
 void P3::special()
@@ -454,7 +454,7 @@ Attaque::Attaque(Unit* joueur, std::string filepath, frameAtt time, float durati
 
 void Attaque::spawn()
 {
-	//setImg(m_imgName);//je ne sais pas pq c'estait nécéssaire
+	std::cout << m_img.getSize().x << std::endl;
 	setTextureRect(sf::IntRect(0, int(!m_ptrPerso->getADroite() * m_img.getSize().y / 2), m_img.getSize().x, int(m_img.getSize().y / 2)));
 	m_ptrPerso->getPtrGroup()->ptrAtt->insert(this);
 }

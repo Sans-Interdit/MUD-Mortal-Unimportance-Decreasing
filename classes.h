@@ -124,13 +124,13 @@ protected:
     std::vector<Attaque*> m_attaques;
 };
 
-class PJ : public SolUnit // rendu abstraite de façon tres/trop simple - faire attention
-    /*
-    les perso seraient :
-    gros avec un tir de loin(charge : gros tir ? / spe : upercut qui leve / switch : caintlyn)
-    bombardier qui zone(ziggs devant / explo qui repousse / tp en haut)
-    rapide (enchainement att genre ww / dash ou parrade(att qui dash si touche (genre E leona?)) / un truc horizontal ptet devant derière)
-    */
+/*
+les perso seraient :
+gros avec un tir de loin (charge : gros tir ? / spe : upercut qui leve / switch : caintlyn)
+bombardier qui zone et mitraille (ziggs devant / explo qui repousse / tp en haut)
+rapide (enchainement att genre ww / dash ou parrade(att qui dash si touche (genre E leona?)) / un truc horizontal ptet devant derière)
+*/
+class PJ : public SolUnit 
 {
 public:
     PJ() = default;
