@@ -1,5 +1,5 @@
 # MUD (Mortal Unimportance Decreasing)
-MUD est un jeu vidéo en cours de réalisation réalisé en C++ sans moteur de jeu importé
+MUD est un protoype de jeu vidéo réalisé en C++ avec SFML
 Il s'agit d'un action-RPG en 2D s'inspirant d'Eiyuden chronicle rising
 
 Controles :
