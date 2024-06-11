@@ -14,4 +14,4 @@ L -> Attaque de base
 
 M -> Action Special
 
-Tab -> Changer de perdonnage
+Tab -> Changer de personnage
